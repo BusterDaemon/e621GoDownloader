@@ -68,9 +68,11 @@ func ScrapMetal(poolID int, proxyStr string, scrapPosts bool, postsTags string,
 
 	log.Println("Adding posts URLs into metadata storage")
 	for _, j := range urlPosts {
-		metas = append(metas, tagparser.PostTags{
-			PostUrl: j,
-		})
+		if j != "" {
+			metas = append(metas, tagparser.PostTags{
+				PostUrl: j,
+			})
+		}
 	}
 
 	return metas, nil

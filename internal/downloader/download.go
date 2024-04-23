@@ -14,10 +14,12 @@ import (
 	"time"
 
 	"github.com/schollz/progressbar/v3"
+	"gorm.io/gorm"
 )
 
 func BatchDownload(urls []tagparser.PostTags, waitTime time.Duration,
-	outDir string, proxyUrl string, log *log.Logger, scrapPosts *bool) error {
+	outDir string, proxyUrl string, log *log.Logger, scrapPosts *bool,
+	db *gorm.DB) error {
 	if _, err := os.Stat(outDir); os.IsNotExist(err) {
 		if err = os.MkdirAll(outDir, 0755); err != nil {
 			return err
@@ -33,7 +35,16 @@ func BatchDownload(urls []tagparser.PostTags, waitTime time.Duration,
 		progressbar.OptionSetWriter(os.Stderr))
 
 	for i, j := range urls {
+		srch := tagparser.DBTags{PostUrl: j.PostUrl}
+		res := db.Where("post_url = ?", j.PostUrl).First(&srch)
+		if res.Error == nil {
+			log.Println("Already downloaded, skipping...")
+			overallBar.Add(1)
+			continue
+		}
+
 		tagparser.ParseTags(&j, parsProxy, log)
+		splitter := strings.Split(j.FileUrl, "/")
 
 		resp, err := cl.Get(j.FileUrl)
 		if err != nil {
@@ -41,8 +52,6 @@ func BatchDownload(urls []tagparser.PostTags, waitTime time.Duration,
 			time.Sleep(waitTime * time.Second)
 			continue
 		}
-
-		splitter := strings.Split(j.FileUrl, "/")
 
 		var tmp_path string = path.Join(
 			outDir,
@@ -89,6 +98,7 @@ func BatchDownload(urls []tagparser.PostTags, waitTime time.Duration,
 		}
 
 		overallBar.Add(1)
+		db.Create(j.ConvertToDB())
 
 		defer f.Close()
 

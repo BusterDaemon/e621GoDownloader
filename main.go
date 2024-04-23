@@ -2,11 +2,13 @@ package main
 
 import (
 	"buster_daemon/e621PoolsDownloader/internal/collector"
+	"buster_daemon/e621PoolsDownloader/internal/database"
 	"buster_daemon/e621PoolsDownloader/internal/downloader"
 	"buster_daemon/e621PoolsDownloader/internal/env"
 	"fmt"
 	"log"
 	"os"
+	"path"
 	"time"
 
 	flag "github.com/spf13/pflag"
@@ -22,11 +24,19 @@ func main() {
 		"Maximum pages to scrap posts (0 = Unlimited)")
 	outDir := flag.String("out", "./defOut/", "Output directory")
 	proxyUrl := flag.String("proxy", "", "Proxy URL")
+	dbPath := flag.String(
+		"dbPath",
+		path.Join(
+			fmt.Sprintf("%s", *outDir),
+			"downloaded.db",
+		),
+		"Path to database that stores download history",
+	)
 	flag.Parse()
 
 	logg := log.New(os.Stderr, "[DEBUG]", 2)
 
-	err := env.GetEnvData(waitTime, maxPostPages, outDir, proxyUrl)
+	err := env.GetEnvData(waitTime, maxPostPages, outDir, proxyUrl, dbPath)
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -41,6 +51,11 @@ func main() {
 		return
 	}
 
+	db, err := database.New(*dbPath)
+	if err != nil {
+		panic(err)
+	}
+
 	urls, err := collector.ScrapMetal(*poolID, *proxyUrl, *scrapPosts,
 		*postsTags, *maxPostPages, logg)
 	if err != nil {
@@ -48,7 +63,7 @@ func main() {
 	}
 
 	err = downloader.BatchDownload(urls, time.Duration(*waitTime), *outDir,
-		*proxyUrl, logg, scrapPosts)
+		*proxyUrl, logg, scrapPosts, db)
 	if err != nil {
 		panic(err)
 	}

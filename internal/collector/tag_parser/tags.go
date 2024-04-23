@@ -19,6 +19,35 @@ type PostTags struct {
 	Score   int      `json:"score"`
 }
 
+type DBTags struct {
+	PostUrl string
+	FileUrl string
+	Tags    string
+	FileExt string
+	Rating  string
+	Score   int
+}
+
+func (pt PostTags) ConvertToDB() *DBTags {
+	dbView := DBTags{
+		PostUrl: pt.PostUrl,
+		FileUrl: pt.FileUrl,
+		FileExt: pt.FileExt,
+		Tags:    "",
+		Rating:  pt.Rating,
+		Score:   pt.Score,
+	}
+
+	for i, j := range pt.Tags {
+		dbView.Tags += j
+		if i < len(pt.Tags)-1 {
+			dbView.Tags += ","
+		}
+	}
+
+	return &dbView
+}
+
 func ParseTags(postUrl *PostTags, proxyUrl *url.URL, log *log.Logger) {
 	var err error
 

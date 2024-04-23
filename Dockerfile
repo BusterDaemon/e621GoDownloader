@@ -2,8 +2,9 @@ FROM golang:1-alpine AS build
 
 WORKDIR /build
 COPY . /build/
+ENV CGO_ENABLED=1
 
-RUN go build -o e621 -ldflags="-s -w" .
+RUN apk add gcc musl-dev && go build -o e621 -ldflags="-s -w" .
 
 FROM alpine:3.19
 ENV E621_OUTPUT_DIRECTORY=/data/
