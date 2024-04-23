@@ -3,6 +3,8 @@ package main
 import (
 	"buster_daemon/e621PoolsDownloader/internal/collector"
 	"buster_daemon/e621PoolsDownloader/internal/downloader"
+	"buster_daemon/e621PoolsDownloader/internal/env"
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -21,6 +23,11 @@ func main() {
 	flag.Parse()
 
 	logg := log.New(os.Stderr, "[DEBUG]", 2)
+
+	err := env.GetEnvData(waitTime, maxPostPages, outDir, proxyUrl)
+	if err != nil {
+		fmt.Println(err)
+	}
 
 	if *poolID == 0 && !*scrapPosts {
 		flag.Usage()
