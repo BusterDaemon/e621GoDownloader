@@ -47,7 +47,7 @@ func ScrapMetal(poolID int, proxyStr string, scrapPosts bool, postsTags string, 
 	})
 
 	coll.OnRequest(func(r *colly.Request) {
-		if maxPages > 0 && pagesVisited >= 2 {
+		if maxPages > 0 && pagesVisited >= maxPages {
 			r.Abort()
 		}
 		pagesVisited++
