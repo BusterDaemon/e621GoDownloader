@@ -44,7 +44,7 @@ func main() {
 		panic(err)
 	}
 
-	err = downloader.BatchDownload(urls, time.Duration(*waitTime), *outDir, *proxyUrl, logg)
+	err = downloader.BatchDownload(urls, time.Duration(*waitTime), *outDir, *proxyUrl, logg, scrapPosts)
 	if err != nil {
 		panic(err)
 	}

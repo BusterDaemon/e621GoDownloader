@@ -16,7 +16,7 @@ import (
 	"github.com/schollz/progressbar/v3"
 )
 
-func BatchDownload(urls []tagparser.PostTags, waitTime time.Duration, outDir string, proxyUrl string, log *log.Logger) error {
+func BatchDownload(urls []tagparser.PostTags, waitTime time.Duration, outDir string, proxyUrl string, log *log.Logger, scrapPosts *bool) error {
 	if _, err := os.Stat(outDir); os.IsNotExist(err) {
 		if err = os.MkdirAll(outDir, 0755); err != nil {
 			return err
@@ -45,7 +45,12 @@ func BatchDownload(urls []tagparser.PostTags, waitTime time.Duration, outDir str
 
 		var tmp_path string = path.Join(
 			outDir,
-			fmt.Sprintf("%.2d_%s.tmp", i, splitter[len(splitter)-1]),
+			func() string {
+				if *scrapPosts {
+					return fmt.Sprintf("%s.tmp", splitter[len(splitter)-1])
+				}
+				return fmt.Sprintf("%.2d_%s.tmp", i, splitter[len(splitter)-1])
+			}(),
 		)
 		var g_path string = strings.ReplaceAll(tmp_path, ".tmp", "")
 
