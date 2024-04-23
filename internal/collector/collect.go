@@ -72,9 +72,5 @@ func ScrapMetal(poolID int, proxyStr string, scrapPosts bool, postsTags string, 
 		})
 	}
 
-	for _, j := range metas {
-		println(j.PostUrl)
-	}
-
 	return metas, nil
 }
