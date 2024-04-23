@@ -74,20 +74,22 @@ func BatchDownload(urls []tagparser.PostTags, waitTime time.Duration, outDir str
 		}
 		os.Rename(tmp_path, g_path)
 
-		mt, _ := os.OpenFile(
-			strings.ReplaceAll(
-				g_path, path.Ext(g_path), ".json",
-			),
-			os.O_CREATE|os.O_WRONLY,
-			0644,
-		)
-		js := json.NewEncoder(mt)
-		js.Encode(j)
+		if err == nil {
+			mt, _ := os.OpenFile(
+				strings.ReplaceAll(
+					g_path, path.Ext(g_path), ".json",
+				),
+				os.O_CREATE|os.O_WRONLY,
+				0644,
+			)
+			js := json.NewEncoder(mt)
+			js.Encode(j)
+			defer mt.Close()
+		}
 
 		overallBar.Add(1)
 
 		defer f.Close()
-		defer mt.Close()
 
 		if i != (len(urls) - 1) {
 			time.Sleep(waitTime * time.Second)
