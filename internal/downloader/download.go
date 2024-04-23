@@ -38,17 +38,17 @@ func BatchDownload(urls []tagparser.PostTags, waitTime time.Duration,
 		postUrl := strings.Split(j.PostUrl, "?")
 		j.PostUrl = postUrl[0]
 
-		err := tagparser.ParseTags(&j, parsProxy, log)
-		if err != nil {
-			log.Println(err)
+		srch := tagparser.DBTags{PostUrl: j.PostUrl}
+		res := db.Where("post_url = ?", j.PostUrl).First(&srch)
+		if res.Error == nil {
+			log.Println("Already downloaded, skipping...")
 			overallBar.Add(1)
 			continue
 		}
 
-		srch := tagparser.DBTags{PostUrl: j.PostUrl}
-		res := db.Where("file_url = ?", j.FileUrl).First(&srch)
-		if res.Error == nil {
-			log.Println("Already downloaded, skipping...")
+		err := tagparser.ParseTags(&j, parsProxy, log)
+		if err != nil {
+			log.Println(err)
 			overallBar.Add(1)
 			continue
 		}
