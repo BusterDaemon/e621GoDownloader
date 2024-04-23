@@ -16,7 +16,8 @@ import (
 	"github.com/schollz/progressbar/v3"
 )
 
-func BatchDownload(urls []tagparser.PostTags, waitTime time.Duration, outDir string, proxyUrl string, log *log.Logger, scrapPosts *bool) error {
+func BatchDownload(urls []tagparser.PostTags, waitTime time.Duration,
+	outDir string, proxyUrl string, log *log.Logger, scrapPosts *bool) error {
 	if _, err := os.Stat(outDir); os.IsNotExist(err) {
 		if err = os.MkdirAll(outDir, 0755); err != nil {
 			return err
