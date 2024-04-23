@@ -56,14 +56,20 @@ func ScrapMetal(poolID int, proxyStr string, scrapPosts bool, postsTags string,
 
 	if !scrapPosts {
 		log.Println("Scraping pool")
-		coll.Visit(
+		err := coll.Visit(
 			fmt.Sprintf("https://e621.net/pools/%d", poolID),
 		)
+		if err != nil {
+			return nil, err
+		}
 	} else {
 		log.Println("Scraping posts")
-		coll.Visit(
+		err := coll.Visit(
 			fmt.Sprintf("https://e621.net/%s", ParseTags(postsTags)),
 		)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	log.Println("Adding posts URLs into metadata storage")

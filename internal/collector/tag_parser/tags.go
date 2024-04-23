@@ -2,6 +2,7 @@ package tagparser
 
 import (
 	"buster_daemon/e621PoolsDownloader/internal/proxy"
+	"errors"
 	"log"
 	"net/url"
 	"strconv"
@@ -48,9 +49,13 @@ func (pt PostTags) ConvertToDB() *DBTags {
 	return &dbView
 }
 
-func ParseTags(postUrl *PostTags, proxyUrl *url.URL, log *log.Logger) {
-	var err error
+func ParseTags(postUrl *PostTags, proxyUrl *url.URL, log *log.Logger) error {
+	var (
+		err      error
+		splitUrl []string = strings.Split(postUrl.PostUrl, "?")
+	)
 
+	postUrl.PostUrl = splitUrl[0]
 	coll := colly.NewCollector(
 		colly.AllowedDomains("e621.net"),
 	)
@@ -70,19 +75,14 @@ func ParseTags(postUrl *PostTags, proxyUrl *url.URL, log *log.Logger) {
 	})
 
 	coll.OnHTML(".btn-warn", func(h *colly.HTMLElement) {
-		decodedUrl, _ := url.PathUnescape(
-			h.Request.AbsoluteURL(
-				h.Attr("href"),
-			),
-		)
-		splitUrl := strings.Split(decodedUrl, ".")
-		postUrl.FileUrl = decodedUrl
+		splitUrl := strings.Split(h.Attr("href"), ".")
+		postUrl.FileUrl = h.Attr("href")
 		postUrl.FileExt = strings.ToLower(
 			splitUrl[len(splitUrl)-1],
 		)
 		log.Println(
 			"Adding file URL and it's extension: ",
-			decodedUrl, splitUrl[len(splitUrl)-1])
+			h.Attr("href"), splitUrl[len(splitUrl)-1])
 	})
 
 	coll.OnHTML("#post-rating-text", func(h *colly.HTMLElement) {
@@ -93,4 +93,11 @@ func ParseTags(postUrl *PostTags, proxyUrl *url.URL, log *log.Logger) {
 	})
 
 	coll.Visit(postUrl.PostUrl)
+
+	if postUrl.FileUrl == "" {
+		log.Println("Post: ", postUrl.PostUrl)
+		return errors.New("no file url, skipping")
+	}
+
+	return nil
 }
