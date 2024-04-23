@@ -16,8 +16,10 @@ func main() {
 	poolID := flag.Int("poolID", 0, "Pool ID to download")
 	waitTime := flag.Int("wait", 5, "Wait time between downloading (seconds)")
 	scrapPosts := flag.Bool("scrapPosts", false, "Scrap posts or pools")
-	postsTags := flag.String("pTags", "", "Search tags used to scrap posts. Delimited by commas.")
-	maxPostPages := flag.Uint("maxPostPages", 0, "Maximum pages to scrap posts (0 = Unlimited)")
+	postsTags := flag.String("pTags", "",
+		"Search tags used to scrap posts. Delimited by commas.")
+	maxPostPages := flag.Uint("maxPostPages", 0,
+		"Maximum pages to scrap posts (0 = Unlimited)")
 	outDir := flag.String("out", "./defOut/", "Output directory")
 	proxyUrl := flag.String("proxy", "", "Proxy URL")
 	flag.Parse()
@@ -39,12 +41,14 @@ func main() {
 		return
 	}
 
-	urls, err := collector.ScrapMetal(*poolID, *proxyUrl, *scrapPosts, *postsTags, *maxPostPages, logg)
+	urls, err := collector.ScrapMetal(*poolID, *proxyUrl, *scrapPosts,
+		*postsTags, *maxPostPages, logg)
 	if err != nil {
 		panic(err)
 	}
 
-	err = downloader.BatchDownload(urls, time.Duration(*waitTime), *outDir, *proxyUrl, logg, scrapPosts)
+	err = downloader.BatchDownload(urls, time.Duration(*waitTime), *outDir,
+		*proxyUrl, logg, scrapPosts)
 	if err != nil {
 		panic(err)
 	}

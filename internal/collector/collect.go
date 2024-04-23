@@ -10,7 +10,8 @@ import (
 	"github.com/gocolly/colly"
 )
 
-func ScrapMetal(poolID int, proxyStr string, scrapPosts bool, postsTags string, maxPages uint, log *log.Logger) ([]tagparser.PostTags, error) {
+func ScrapMetal(poolID int, proxyStr string, scrapPosts bool, postsTags string,
+	maxPages uint, log *log.Logger) ([]tagparser.PostTags, error) {
 	var (
 		pagesVisited uint = 0
 		urlPosts     []string

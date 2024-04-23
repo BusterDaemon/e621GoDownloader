@@ -51,7 +51,9 @@ func ParseTags(postUrl *PostTags, proxyUrl *url.URL, log *log.Logger) {
 		postUrl.FileExt = strings.ToLower(
 			splitUrl[len(splitUrl)-1],
 		)
-		log.Println("Adding file URL and it's extension: ", decodedUrl, splitUrl[len(splitUrl)-1])
+		log.Println(
+			"Adding file URL and it's extension: ",
+			decodedUrl, splitUrl[len(splitUrl)-1])
 	})
 
 	coll.OnHTML("#post-rating-text", func(h *colly.HTMLElement) {
