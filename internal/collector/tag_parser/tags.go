@@ -1,14 +1,13 @@
 package tagparser
 
 import (
-	"buster_daemon/e621PoolsDownloader/internal/proxy"
 	"errors"
 	"log"
-	"net/url"
 	"strconv"
 	"strings"
 
 	"github.com/gocolly/colly"
+	"gorm.io/gorm"
 )
 
 type PostTags struct {
@@ -27,6 +26,14 @@ type DBTags struct {
 	FileExt string
 	Rating  string
 	Score   int
+}
+
+type TagParserer interface {
+	TagParse(proxyUrl string, log *log.Logger) error
+	ConvertToDB() *DBTags
+	GetPostUrl() string
+	GetFileUrl() string
+	SetPostUrl(url string)
 }
 
 func (pt PostTags) ConvertToDB() *DBTags {
@@ -49,25 +56,31 @@ func (pt PostTags) ConvertToDB() *DBTags {
 	return &dbView
 }
 
-func ParseTags(postUrl *PostTags, proxyUrl *url.URL, log *log.Logger) error {
+func (dbT DBTags) InsertIntoDB(db *gorm.DB) {
+	db.Create(dbT)
+}
+
+func (pt *PostTags) ParseTags(proxyUrl *string, log *log.Logger) error {
 	var (
 		err      error
-		splitUrl []string = strings.Split(postUrl.PostUrl, "?")
+		splitUrl []string = strings.Split(pt.PostUrl, "?")
 	)
 
-	postUrl.PostUrl = splitUrl[0]
+	pt.PostUrl = splitUrl[0]
 	coll := colly.NewCollector(
 		colly.AllowedDomains("e621.net"),
 	)
-	coll.WithTransport(proxy.DefaultTransport(proxyUrl))
+	if proxyUrl != nil && *proxyUrl != "" {
+		coll.SetProxy(*proxyUrl)
+	}
 
 	coll.OnHTML(".search-tag", func(h *colly.HTMLElement) {
-		postUrl.Tags = append(postUrl.Tags, h.Text)
+		pt.Tags = append(pt.Tags, h.Text)
 		log.Println("Adding new tag: ", h.Text)
 	})
 
 	coll.OnHTML(".post-score", func(h *colly.HTMLElement) {
-		postUrl.Score, err = strconv.Atoi(h.Text)
+		pt.Score, err = strconv.Atoi(h.Text)
 		if err != nil {
 			return
 		}
@@ -76,8 +89,8 @@ func ParseTags(postUrl *PostTags, proxyUrl *url.URL, log *log.Logger) error {
 
 	coll.OnHTML(".btn-warn", func(h *colly.HTMLElement) {
 		splitUrl := strings.Split(h.Attr("href"), ".")
-		postUrl.FileUrl = h.Attr("href")
-		postUrl.FileExt = strings.ToLower(
+		pt.FileUrl = h.Attr("href")
+		pt.FileExt = strings.ToLower(
 			splitUrl[len(splitUrl)-1],
 		)
 		log.Println(
@@ -86,18 +99,30 @@ func ParseTags(postUrl *PostTags, proxyUrl *url.URL, log *log.Logger) error {
 	})
 
 	coll.OnHTML("#post-rating-text", func(h *colly.HTMLElement) {
-		postUrl.Rating = strings.ToLower(
+		pt.Rating = strings.ToLower(
 			string(h.Text[0]),
 		)
 		log.Println("Adding rating: ", h.Text)
 	})
 
-	coll.Visit(postUrl.PostUrl)
+	coll.Visit(pt.PostUrl)
 
-	if postUrl.FileUrl == "" {
-		log.Println("Post: ", postUrl.PostUrl)
+	if pt.FileUrl == "" {
+		log.Println("Post: ", pt.PostUrl)
 		return errors.New("no file url, skipping")
 	}
 
 	return nil
+}
+
+func (pt PostTags) GetPostUrl() string {
+	return pt.PostUrl
+}
+
+func (pt PostTags) GetFileUrl() string {
+	return pt.FileUrl
+}
+
+func (pt *PostTags) SetPostUrl(url string) {
+	pt.PostUrl = url
 }

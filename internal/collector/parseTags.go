@@ -2,7 +2,7 @@ package collector
 
 import "strings"
 
-func ParseTags(postTags string) string {
+func (c Collector) ParseTags(postTags string) string {
 	var (
 		result   string = "posts?tags="
 		splitted []string

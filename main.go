@@ -9,7 +9,6 @@ import (
 	"log"
 	"os"
 	"path"
-	"time"
 
 	flag "github.com/spf13/pflag"
 )
@@ -27,14 +26,14 @@ func main() {
 	dbPath := flag.String(
 		"dbPath",
 		path.Join(
-			fmt.Sprintf("%s", *outDir),
+			*outDir,
 			"downloaded.db",
 		),
 		"Path to database that stores download history",
 	)
 	flag.Parse()
 
-	logg := log.New(os.Stderr, "[DEBUG]", 2)
+	logg := log.New(os.Stderr, "[DEBUG] ", 2)
 
 	err := env.GetEnvData(waitTime, maxPostPages, outDir, proxyUrl, dbPath)
 	if err != nil {
@@ -56,15 +55,29 @@ func main() {
 		panic(err)
 	}
 
-	urls, err := collector.ScrapMetal(*poolID, *proxyUrl, *scrapPosts,
-		*postsTags, *maxPostPages, logg)
+	urls, err := collector.Collector{
+		ProxyURL:      proxyUrl,
+		PoolID:        poolID,
+		PostScrap:     *scrapPosts,
+		PostTags:      postsTags,
+		MaxScrapPages: maxPostPages,
+		Logger:        logg,
+		DB:            db,
+	}.Scrap()
 	if err != nil {
-		panic(err)
+		log.Fatalln(err)
 	}
 
-	err = downloader.BatchDownload(urls, time.Duration(*waitTime), *outDir,
-		*proxyUrl, logg, scrapPosts, db)
+	err = downloader.BatchDownload{
+		Posts:            urls,
+		WaitBtwDownloads: uint(*waitTime),
+		OutputDir:        *outDir,
+		ProxyUrl:         proxyUrl,
+		Logger:           logg,
+		ScrapPosts:       scrapPosts,
+		DB:               db,
+	}.Download()
 	if err != nil {
-		panic(err)
+		log.Fatalln(err)
 	}
 }

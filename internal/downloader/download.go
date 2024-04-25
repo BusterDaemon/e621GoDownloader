@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"log"
-	"net/url"
 	"os"
 	"path"
 	"strings"
@@ -17,55 +16,75 @@ import (
 	"gorm.io/gorm"
 )
 
-func BatchDownload(urls []tagparser.PostTags, waitTime time.Duration,
-	outDir string, proxyUrl string, log *log.Logger, scrapPosts *bool,
-	db *gorm.DB) error {
-	if _, err := os.Stat(outDir); os.IsNotExist(err) {
-		if err = os.MkdirAll(outDir, 0755); err != nil {
+type BatchDownload struct {
+	Posts            []tagparser.PostTags
+	WaitBtwDownloads uint
+	OutputDir        string
+	ProxyUrl         *string
+	Logger           *log.Logger
+	ScrapPosts       *bool
+	DB               *gorm.DB
+}
+
+type Downloader interface {
+	Download() error
+}
+
+func (bd BatchDownload) Error() string {
+	return "Post list is empty.\n"
+}
+
+func (bd BatchDownload) Download() error {
+	if len(bd.Posts) == 0 {
+		return &BatchDownload{}
+	}
+
+	if _, err := os.Stat(bd.OutputDir); os.IsNotExist(err) {
+		if err = os.MkdirAll(bd.OutputDir, 0755); err != nil {
 			return err
 		}
 	}
-	parsProxy, _ := url.Parse(proxyUrl)
-	cl := proxy.NewClient(proxyUrl)
-	overallBar := progressbar.NewOptions(len(urls),
+
+	cl := proxy.NewClient(*bd.ProxyUrl)
+	overallBar := progressbar.NewOptions(len(bd.Posts),
 		progressbar.OptionSetDescription("Downloaded"),
 		progressbar.OptionFullWidth(),
 		progressbar.OptionSetVisibility(true),
 		progressbar.OptionShowCount(),
 		progressbar.OptionSetWriter(os.Stderr))
 
-	for i, j := range urls {
-		postUrl := strings.Split(j.PostUrl, "?")
-		j.PostUrl = postUrl[0]
+	for i, j := range bd.Posts {
+		postUrl := strings.Split(j.GetPostUrl(), "?")
+		j.SetPostUrl(postUrl[0])
 
-		srch := tagparser.DBTags{PostUrl: j.PostUrl}
-		res := db.Where("post_url = ?", j.PostUrl).First(&srch)
+		srch := tagparser.DBTags{PostUrl: j.GetPostUrl()}
+		res := bd.DB.Where("post_url = ?", j.GetPostUrl()).First(&srch)
 		if res.Error == nil {
 			log.Println("Already downloaded, skipping...")
 			overallBar.Add(1)
 			continue
 		}
 
-		err := tagparser.ParseTags(&j, parsProxy, log)
+		err := j.ParseTags(bd.ProxyUrl, bd.Logger)
 		if err != nil {
 			log.Println(err)
 			overallBar.Add(1)
 			continue
 		}
 
-		splitter := strings.Split(j.FileUrl, "/")
+		splitter := strings.Split(j.GetFileUrl(), "/")
 
-		resp, err := cl.Get(j.FileUrl)
+		resp, err := cl.Get(j.GetFileUrl())
 		if err != nil {
-			fmt.Printf("%s returned %s.\n", j.FileUrl, err)
-			time.Sleep(waitTime * time.Second)
+			fmt.Printf("%s returned %s.\n", j.GetFileUrl(), err)
+			time.Sleep(time.Duration(bd.WaitBtwDownloads) * time.Second)
 			continue
 		}
 
 		var tmp_path string = path.Join(
-			outDir,
+			bd.OutputDir,
 			func() string {
-				if *scrapPosts {
+				if bd.ScrapPosts != nil && *bd.ScrapPosts {
 					return fmt.Sprintf("%s.tmp", splitter[len(splitter)-1])
 				}
 				return fmt.Sprintf("%.2d_%s.tmp", i, splitter[len(splitter)-1])
@@ -81,7 +100,7 @@ func BatchDownload(urls []tagparser.PostTags, waitTime time.Duration,
 
 		bar := progressbar.DefaultBytes(
 			resp.ContentLength,
-			fmt.Sprintf("Downloading: %s", j.FileUrl),
+			fmt.Sprintf("Downloading: %s", j.GetFileUrl()),
 		)
 
 		_, err = io.Copy(
@@ -107,12 +126,12 @@ func BatchDownload(urls []tagparser.PostTags, waitTime time.Duration,
 		}
 
 		overallBar.Add(1)
-		db.Create(j.ConvertToDB())
+		bd.DB.Create(j.ConvertToDB())
 
 		defer f.Close()
 
-		if i != (len(urls) - 1) {
-			time.Sleep(waitTime * time.Second)
+		if i != (len(bd.Posts) - 1) {
+			time.Sleep(time.Duration(bd.WaitBtwDownloads) * time.Second)
 		}
 	}
 
