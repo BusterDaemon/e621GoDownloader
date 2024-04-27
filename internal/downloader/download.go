@@ -26,10 +26,6 @@ type BatchDownload struct {
 	DB               *gorm.DB
 }
 
-type Downloader interface {
-	Download() error
-}
-
 func (bd BatchDownload) Error() string {
 	return "Post list is empty.\n"
 }
