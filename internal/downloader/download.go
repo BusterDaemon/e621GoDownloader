@@ -54,11 +54,11 @@ func (bd BatchDownload) Download() error {
 		progressbar.OptionSetWriter(os.Stderr))
 
 	for i, j := range bd.Posts {
-		postUrl := strings.Split(j.GetPostUrl(), "?")
-		j.SetPostUrl(postUrl[0])
+		postUrl := strings.Split(j.PostUrl, "?")
+		j.PostUrl = postUrl[0]
 
-		srch := tagparser.DBTags{PostUrl: j.GetPostUrl()}
-		res := bd.DB.Where("post_url = ?", j.GetPostUrl()).First(&srch)
+		srch := tagparser.DBTags{PostUrl: j.PostUrl}
+		res := bd.DB.Where("post_url = ?", j.PostUrl).First(&srch)
 		if res.Error == nil {
 			log.Println("Already downloaded, skipping...")
 			overallBar.Add(1)
@@ -72,11 +72,11 @@ func (bd BatchDownload) Download() error {
 			continue
 		}
 
-		splitter := strings.Split(j.GetFileUrl(), "/")
+		splitter := strings.Split(j.FileUrl, "/")
 
-		resp, err := cl.Get(j.GetFileUrl())
+		resp, err := cl.Get(j.FileUrl)
 		if err != nil {
-			fmt.Printf("%s returned %s.\n", j.GetFileUrl(), err)
+			fmt.Printf("%s returned %s.\n", j.FileUrl, err)
 			time.Sleep(time.Duration(bd.WaitBtwDownloads) * time.Second)
 			continue
 		}
@@ -100,7 +100,7 @@ func (bd BatchDownload) Download() error {
 
 		bar := progressbar.DefaultBytes(
 			resp.ContentLength,
-			fmt.Sprintf("Downloading: %s", j.GetFileUrl()),
+			fmt.Sprintf("Downloading: %s", j.FileUrl),
 		)
 
 		_, err = io.Copy(

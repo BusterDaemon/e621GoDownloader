@@ -22,10 +22,6 @@ type Collector struct {
 	DB            *gorm.DB
 }
 
-type Scrapper interface {
-	Scrap() ([]tagparser.DBTags, error)
-}
-
 func (c Collector) Scrap() ([]tagparser.PostTags, error) {
 	var (
 		pagesVisited uint = 0

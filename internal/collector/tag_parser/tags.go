@@ -28,14 +28,6 @@ type DBTags struct {
 	Score   int
 }
 
-type TagParserer interface {
-	TagParse(proxyUrl string, log *log.Logger) error
-	ConvertToDB() *DBTags
-	GetPostUrl() string
-	GetFileUrl() string
-	SetPostUrl(url string)
-}
-
 func (pt PostTags) ConvertToDB() *DBTags {
 	dbView := DBTags{
 		PostUrl: pt.PostUrl,
@@ -113,16 +105,4 @@ func (pt *PostTags) ParseTags(proxyUrl *string, log *log.Logger) error {
 	}
 
 	return nil
-}
-
-func (pt PostTags) GetPostUrl() string {
-	return pt.PostUrl
-}
-
-func (pt PostTags) GetFileUrl() string {
-	return pt.FileUrl
-}
-
-func (pt *PostTags) SetPostUrl(url string) {
-	pt.PostUrl = url
 }
