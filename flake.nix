@@ -10,20 +10,23 @@
       pkgs = import nixpkgs {
         system = "x86_64-linux";
       };
-    in
-    {
+    in {
       devShells."x86_64-linux".default = pkgs.mkShell {
-        name = "E621 & Rule34 downloader";
-	buildInputs = with pkgs; [
-          go
-	  gotools
-	  golangci-lint
-	  gopls
-	  go-outline
-	  gopkgs
-	  delve
-	];
+      name = "E621 & Rule34 downloader";
+      hardeningDisable = [ "all" ];
+	    buildInputs = with pkgs; [
+        go
+        gotools
+        golangci-lint
+        gopls
+        go-outline
+        gopkgs
+        delve
+        gcc
+	    ];
+      shellHook = ''
+        go version
+      '';
       };
     };
-  
 }
