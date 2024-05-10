@@ -3,7 +3,9 @@ package downloader
 import (
 	tagparser "buster_daemon/e621PoolsDownloader/internal/collector/tag_parser"
 	"buster_daemon/e621PoolsDownloader/internal/proxy"
+	"crypto/sha512"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -66,22 +68,25 @@ func (bd BatchDownload) Download(posts []tagparser.PostTags) error {
 			continue
 		}
 
-		var tmp_path string = path.Join(
-			bd.OutputDir,
-			func() string {
-				if bd.ScrapPosts != nil && *bd.ScrapPosts {
-					return fmt.Sprintf("%s.tmp", splitter[len(splitter)-1])
-				}
-				return fmt.Sprintf("%.2d_%s.tmp", i, splitter[len(splitter)-1])
-			}(),
-		)
-		var g_path string = strings.ReplaceAll(tmp_path, ".tmp", "")
+		tmpFile, err := os.CreateTemp(bd.OutputDir, "*")
+		if err != nil {
+			return err
+		}
+		defer tmpFile.Close()
+		tmpFilePath := tmpFile.Name()
 
-		f, _ := os.OpenFile(
-			tmp_path,
-			os.O_CREATE|os.O_WRONLY,
-			0644,
-		)
+		newFileName := func() string {
+			if bd.ScrapPosts != nil && *bd.ScrapPosts {
+				return path.Join(
+					bd.OutputDir,
+					splitter[len(splitter)-1],
+				)
+			}
+			return path.Join(
+				bd.OutputDir,
+				fmt.Sprintf("%.3d_%s", i, splitter[len(splitter)-1]),
+			)
+		}
 
 		bar := progressbar.DefaultBytes(
 			resp.ContentLength,
@@ -89,18 +94,35 @@ func (bd BatchDownload) Download(posts []tagparser.PostTags) error {
 		)
 
 		_, err = io.Copy(
-			io.MultiWriter(f, bar),
+			io.MultiWriter(tmpFile, bar),
 			resp.Body,
 		)
 		if err != nil {
-			os.Remove(tmp_path)
+			os.Remove(tmpFilePath)
 		}
-		os.Rename(tmp_path, g_path)
+		_, err = tmpFile.Seek(0, 0)
+		if err != nil {
+			return err
+		}
 
+		h := sha512.New()
+		_, err = io.Copy(h, tmpFile)
+		if err != nil {
+			return err
+		}
+
+		res = bd.DB.Where("hash = ?", fmt.Sprintf("%x", h.Sum(nil))).
+			First(tagparser.DBTags{Hash: fmt.Sprintf("%x", h.Sum(nil))})
+		if !errors.Is(res.Error, gorm.ErrRecordNotFound) || res.Error == nil {
+			os.Remove(tmpFilePath)
+			return nil
+		}
+
+		err = os.Rename(tmpFilePath, newFileName())
 		if err == nil {
 			mt, _ := os.OpenFile(
 				strings.ReplaceAll(
-					g_path, path.Ext(g_path), ".json",
+					newFileName(), path.Ext(newFileName()), ".json",
 				),
 				os.O_CREATE|os.O_WRONLY,
 				0644,
@@ -111,9 +133,7 @@ func (bd BatchDownload) Download(posts []tagparser.PostTags) error {
 		}
 
 		overallBar.Add(1)
-		bd.DB.Create(j.ConvertToDB())
-
-		defer f.Close()
+		bd.DB.Create(j.ConvertToDB(fmt.Sprintf("%x", h.Sum(nil))))
 
 		if i != (len(posts) - 1) {
 			time.Sleep(time.Duration(bd.WaitBtwDownloads) * time.Second)

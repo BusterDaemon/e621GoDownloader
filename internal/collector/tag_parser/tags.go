@@ -26,9 +26,10 @@ type DBTags struct {
 	FileExt string
 	Rating  string
 	Score   int
+	Hash    string
 }
 
-func (pt PostTags) ConvertToDB() *DBTags {
+func (pt PostTags) ConvertToDB(hash string) *DBTags {
 	dbView := DBTags{
 		PostUrl: pt.PostUrl,
 		FileUrl: pt.FileUrl,
@@ -36,6 +37,7 @@ func (pt PostTags) ConvertToDB() *DBTags {
 		Tags:    "",
 		Rating:  pt.Rating,
 		Score:   pt.Score,
+		Hash:    hash,
 	}
 
 	for i, j := range pt.Tags {
