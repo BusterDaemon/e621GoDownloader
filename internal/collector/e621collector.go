@@ -180,16 +180,6 @@ func (c E621Collector) Scrap() ([]tagparser.PostTags, error) {
 			return nil, err
 		}
 	}
-
-	// log.Println("Adding posts URLs into metadata storage")
-	// for _, j := range urlPosts {
-	// 	if j != "" {
-	// 		metas = append(metas, tagparser.PostTags{
-	// 			PostUrl: j,
-	// 		})
-	// 	}
-	// }
-
 	return metas, nil
 }
 
