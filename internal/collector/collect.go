@@ -12,6 +12,10 @@ import (
 	"gorm.io/gorm"
 )
 
+type Collectorer interface {
+	Scrap() ([]tagparser.PostTags, error)
+}
+
 type Collector struct {
 	ProxyURL      *string
 	PoolID        *int
@@ -35,7 +39,7 @@ func (c Collector) Scrap() ([]tagparser.PostTags, error) {
 
 	if c.ProxyURL != nil || *c.ProxyURL != "" {
 		coll.SetProxy(*c.ProxyURL)
-		log.Println("Setted proxy: ", *c.ProxyURL)
+		c.Logger.Printf("Setted proxy: %s", *c.ProxyURL)
 	}
 
 	coll.OnHTML("article > a[href]", func(h *colly.HTMLElement) {
