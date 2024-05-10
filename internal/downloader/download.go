@@ -17,7 +17,6 @@ import (
 )
 
 type BatchDownload struct {
-	Posts            []tagparser.PostTags
 	WaitBtwDownloads uint
 	OutputDir        string
 	ProxyUrl         *string
@@ -30,8 +29,8 @@ func (bd BatchDownload) Error() string {
 	return "Post list is empty.\n"
 }
 
-func (bd BatchDownload) Download() error {
-	if len(bd.Posts) == 0 {
+func (bd BatchDownload) Download(posts []tagparser.PostTags) error {
+	if len(posts) == 0 {
 		return &BatchDownload{}
 	}
 
@@ -42,28 +41,18 @@ func (bd BatchDownload) Download() error {
 	}
 
 	cl := proxy.NewClient(*bd.ProxyUrl)
-	overallBar := progressbar.NewOptions(len(bd.Posts),
+	overallBar := progressbar.NewOptions(len(posts),
 		progressbar.OptionSetDescription("Downloaded"),
 		progressbar.OptionFullWidth(),
 		progressbar.OptionSetVisibility(true),
 		progressbar.OptionShowCount(),
 		progressbar.OptionSetWriter(os.Stderr))
 
-	for i, j := range bd.Posts {
-		postUrl := strings.Split(j.PostUrl, "?")
-		j.PostUrl = postUrl[0]
-
+	for i, j := range posts {
 		srch := tagparser.DBTags{PostUrl: j.PostUrl}
 		res := bd.DB.Where("post_url = ?", j.PostUrl).First(&srch)
 		if res.Error == nil {
 			log.Println("Already downloaded, skipping...")
-			overallBar.Add(1)
-			continue
-		}
-
-		err := j.ParseTags(bd.ProxyUrl, bd.Logger)
-		if err != nil {
-			log.Println(err)
 			overallBar.Add(1)
 			continue
 		}
@@ -126,7 +115,7 @@ func (bd BatchDownload) Download() error {
 
 		defer f.Close()
 
-		if i != (len(bd.Posts) - 1) {
+		if i != (len(posts) - 1) {
 			time.Sleep(time.Duration(bd.WaitBtwDownloads) * time.Second)
 		}
 	}

@@ -2,6 +2,7 @@ package collector
 
 import (
 	tagparser "buster_daemon/e621PoolsDownloader/internal/collector/tag_parser"
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -21,6 +22,91 @@ type Rule34Collector struct {
 	MaxScrapPages *uint
 	Logger        *log.Logger
 	DB            *gorm.DB
+}
+
+func (c Rule34Collector) New(proxy *string, pool *int, postScrap bool,
+	postTags *string, maxScrapPages *uint, logger *log.Logger,
+	db *gorm.DB) Collectorer {
+	return Rule34Collector{
+		ProxyURL:      proxy,
+		PoolID:        pool,
+		PostScrap:     postScrap,
+		PostTags:      postTags,
+		MaxScrapPages: maxScrapPages,
+		Logger:        logger,
+		DB:            db,
+	}
+}
+
+func (c Rule34Collector) GetProxy() string {
+	return *c.ProxyURL
+}
+
+func (c Rule34Collector) GetPool() int {
+	return *c.PoolID
+}
+
+func (c Rule34Collector) GetPostScrap() bool {
+	return c.PostScrap
+}
+
+func (c Rule34Collector) GetPostTags() string {
+	return *c.PostTags
+}
+
+func (c Rule34Collector) GetMaxScrapPages() uint {
+	return *c.MaxScrapPages
+}
+
+func (c Rule34Collector) GetLogger() *log.Logger {
+	return c.Logger
+}
+
+func (c Rule34Collector) GetDB() *gorm.DB {
+	return c.DB
+}
+
+func (c Rule34Collector) SetProxy(url string) (Collectorer, error) {
+	if strings.TrimSpace(url) == "" {
+		return c, E621CollectorEmptyProxy{}
+	}
+	if !strings.Contains(url, "http") && !strings.Contains(url, "socks") {
+		return c, E621CollectorUnknownProxy{}
+	}
+	c.ProxyURL = &url
+	return c, nil
+}
+
+func (c Rule34Collector) SetPool(id int) (Collectorer, error) {
+	if id == 0 || id < 0 {
+		return c, E621CollectorZeroPoolID{}
+	}
+	c.PoolID = &id
+	return c, nil
+}
+
+func (c Rule34Collector) SetPostTags(tags string) (Collectorer, error) {
+	if strings.TrimSpace(tags) == "" {
+		return c, E621CollectorEmptyTags{}
+	}
+	c.PostTags = &tags
+	return c, nil
+}
+
+func (c Rule34Collector) SetLogger(logger *log.Logger) (Collectorer, error) {
+	if logger == nil {
+		return c, E621CollectorNullLogger{}
+	}
+	c.Logger = logger
+	return c, nil
+}
+
+func (c Rule34Collector) SetDB(db *gorm.DB) (Collectorer, error) {
+	if db == nil {
+		return c, E621CollectorNullDB{}
+	}
+	c.DB = db
+	return c, nil
 }
 
 func (c *Rule34Collector) ParseTags() string {
@@ -163,9 +249,21 @@ func (c Rule34Collector) Scrap() ([]tagparser.PostTags, error) {
 		}
 		postUrl = h.Request.AbsoluteURL(postUrl)
 		c.Logger.Printf("Found a post: %s", postUrl)
+
+		res := c.DB.Where(
+			"post_url = ?", postUrl,
+		).First(&tagparser.DBTags{
+			PostUrl: postUrl,
+		})
+		if !errors.Is(res.Error, gorm.ErrRecordNotFound) || res.Error == nil {
+			log.Println("Already downloaded, skipping...")
+			return
+		}
+
 		post := c.getTheImage(postUrl)
 		if post != nil {
 			posts = append(posts, *post)
+			log.Println("Added new post:", postUrl)
 		}
 	})
 

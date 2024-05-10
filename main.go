@@ -2,13 +2,13 @@ package main
 
 import (
 	"buster_daemon/e621PoolsDownloader/internal/collector"
+	tagparser "buster_daemon/e621PoolsDownloader/internal/collector/tag_parser"
 	"buster_daemon/e621PoolsDownloader/internal/database"
 	"buster_daemon/e621PoolsDownloader/internal/downloader"
 	"buster_daemon/e621PoolsDownloader/internal/env"
 	"fmt"
 	"log"
 	"os"
-	"path"
 
 	flag "github.com/spf13/pflag"
 )
@@ -25,12 +25,10 @@ func main() {
 	proxyUrl := flag.String("proxy", "", "Proxy URL")
 	dbPath := flag.String(
 		"dbPath",
-		path.Join(
-			*outDir,
-			"downloaded.db",
-		),
+		"downloaded.db",
 		"Path to database that stores download history",
 	)
+	booru := flag.String("booru", "e621", "Booru Type")
 	flag.Parse()
 
 	logg := log.New(os.Stderr, "[DEBUG] ", 2)
@@ -54,29 +52,48 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	var urls []tagparser.PostTags
 
-	urls, err := collector.Collector{
-		ProxyURL:      proxyUrl,
-		PoolID:        poolID,
-		PostScrap:     *scrapPosts,
-		PostTags:      postsTags,
-		MaxScrapPages: maxPostPages,
-		Logger:        logg,
-		DB:            db,
-	}.Scrap()
-	if err != nil {
-		log.Fatalln(err)
+	switch *booru {
+	case "e621":
+		urls, err = collector.E621Collector{
+			ProxyURL:      proxyUrl,
+			PoolID:        poolID,
+			PostScrap:     *scrapPosts,
+			PostTags:      postsTags,
+			MaxScrapPages: maxPostPages,
+			Logger:        logg,
+			DB:            db,
+		}.Scrap()
+		if err != nil {
+			log.Fatalln(err)
+		}
+	case "rule34":
+		urls, err = collector.Rule34Collector{
+			ProxyURL:      proxyUrl,
+			PoolID:        poolID,
+			PostScrap:     *scrapPosts,
+			PostTags:      postsTags,
+			MaxScrapPages: maxPostPages,
+			Logger:        logg,
+			DB:            db,
+		}.Scrap()
+		if err != nil {
+			logg.Fatal(err)
+		}
+	default:
+		flag.Usage()
+		return
 	}
 
 	err = downloader.BatchDownload{
-		Posts:            urls,
 		WaitBtwDownloads: uint(*waitTime),
 		OutputDir:        *outDir,
 		ProxyUrl:         proxyUrl,
 		Logger:           logg,
 		ScrapPosts:       scrapPosts,
 		DB:               db,
-	}.Download()
+	}.Download(urls)
 	if err != nil {
 		log.Fatalln(err)
 	}
