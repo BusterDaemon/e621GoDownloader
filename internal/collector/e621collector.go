@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/gocolly/colly"
@@ -110,7 +110,6 @@ func (c E621Collector) SetDB(db *gorm.DB) (Collectorer, error) {
 func (c E621Collector) Scrap() ([]tagparser.PostTags, error) {
 	var (
 		pagesVisited uint = 0
-		urlPosts     []string
 		metas        []tagparser.PostTags
 	)
 
@@ -123,33 +122,33 @@ func (c E621Collector) Scrap() ([]tagparser.PostTags, error) {
 		c.Logger.Printf("Setted proxy: %s", *c.ProxyURL)
 	}
 
-	coll.OnHTML("article > a[href]", func(h *colly.HTMLElement) {
-		decodedUrl, _ := url.PathUnescape(
-			h.Request.AbsoluteURL(h.Attr("href")),
+	coll.OnHTML("article", func(h *colly.HTMLElement) {
+		postUrl := h.Request.AbsoluteURL(
+			"/posts/" + h.Attr("data-id"),
 		)
-
-		if decodedUrl != "" {
-			existing := c.DB.
-				Where(
-					"post_url = ?",
-					strings.Split(decodedUrl, "?")[0],
-				).
-				First(
-					&tagparser.DBTags{
-						PostUrl: strings.Split(
-							decodedUrl, "?",
-						)[0],
-					},
-				)
-
-			if !errors.Is(existing.Error, gorm.ErrRecordNotFound) ||
-				existing.Error == nil {
-				log.Printf("%s already downloaded, skipping...", decodedUrl)
-				return
-			}
-			urlPosts = append(urlPosts, decodedUrl)
-			log.Println("Added new post URL:", decodedUrl)
+		res := c.DB.Where("post_url = ?", postUrl).
+			First(tagparser.DBTags{PostUrl: postUrl})
+		if !errors.Is(res.Error, gorm.ErrRecordNotFound) ||
+			res.Error == nil {
+			c.Logger.Println(postUrl, "Already downloaded. Skipping...")
+			return
 		}
+
+		tags := strings.Split(h.Attr("data-tags"), " ")
+
+		score, err := strconv.Atoi(h.Attr("data-score"))
+		if err != nil {
+			c.Logger.Println(err)
+			return
+		}
+		metas = append(metas, tagparser.PostTags{
+			PostUrl: postUrl,
+			FileUrl: h.Attr("data-file-url"),
+			Tags:    tags,
+			FileExt: h.Attr("data-file-ext"),
+			Rating:  h.Attr("data-rating"),
+			Score:   score,
+		})
 	})
 
 	coll.OnHTML("#paginator-next", func(h *colly.HTMLElement) {
@@ -182,14 +181,14 @@ func (c E621Collector) Scrap() ([]tagparser.PostTags, error) {
 		}
 	}
 
-	log.Println("Adding posts URLs into metadata storage")
-	for _, j := range urlPosts {
-		if j != "" {
-			metas = append(metas, tagparser.PostTags{
-				PostUrl: j,
-			})
-		}
-	}
+	// log.Println("Adding posts URLs into metadata storage")
+	// for _, j := range urlPosts {
+	// 	if j != "" {
+	// 		metas = append(metas, tagparser.PostTags{
+	// 			PostUrl: j,
+	// 		})
+	// 	}
+	// }
 
 	return metas, nil
 }
@@ -208,6 +207,7 @@ func (c E621Collector) ParseTags() string {
 			result += "+"
 		}
 	}
+	result = strings.ReplaceAll(result, "\"", "")
 
 	return result
 }
