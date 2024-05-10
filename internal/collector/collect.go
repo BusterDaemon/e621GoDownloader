@@ -94,7 +94,7 @@ func (c Collector) Scrap() ([]tagparser.PostTags, error) {
 	} else {
 		log.Println("Scraping posts")
 		err := coll.Visit(
-			fmt.Sprintf("https://e621.net/%s", c.ParseTags(*c.PostTags)),
+			fmt.Sprintf("https://e621.net/%s", c.ParseTags()),
 		)
 		if err != nil {
 			return nil, err
