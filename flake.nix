@@ -23,6 +23,7 @@
         gopkgs
         delve
         gcc
+	sqlite
 	    ];
       shellHook = ''
         go version
