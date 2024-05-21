@@ -59,13 +59,13 @@ func (s E621Posts) convert() []Post {
 	var totalPosts []Post
 	for _, i := range s.Post {
 		totalPosts = append(totalPosts, Post{
-			Width:  i.File.Width,
-			Height: i.File.Height,
-			Ext:    i.File.Ext,
-			Hash:   i.File.Hash,
-			Url:    i.File.Url,
-			Score:  i.Score.Total,
-			Rating: i.Rating,
+			Width:   i.File.Width,
+			Height:  i.File.Height,
+			FileExt: i.File.Ext,
+			Hash:    i.File.Hash,
+			FileUrl: i.File.Url,
+			Score:   i.Score.Total,
+			Rating:  i.Rating,
 			Tags: func() string {
 				var massive []string
 				massive = append(massive, i.Tags.Artist...)

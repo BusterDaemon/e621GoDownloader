@@ -35,14 +35,14 @@ func (r Rule34Scraper) convertPosts(p []Rulka) []Post {
 	var totPosts []Post
 	for _, i := range p {
 		totPosts = append(totPosts, Post{
-			Width:  i.Width,
-			Height: i.Height,
-			Hash:   i.Hash,
-			Url:    i.Url,
-			Score:  i.Score,
-			Rating: string(i.Rating[0]),
-			Tags:   i.Rating,
-			Ext: func() string {
+			Width:   i.Width,
+			Height:  i.Height,
+			Hash:    i.Hash,
+			FileUrl: i.Url,
+			Score:   i.Score,
+			Rating:  string(i.Rating[0]),
+			Tags:    i.Rating,
+			FileExt: func() string {
 				extSplit := strings.Split(i.Url, ".")
 				return extSplit[len(extSplit)-1]
 			}(),

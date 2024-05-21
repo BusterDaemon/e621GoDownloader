@@ -3,9 +3,9 @@ package parsers
 type Post struct {
 	Width   int
 	Height  int
-	Ext     string
+	FileExt string
 	Hash    string
-	Url     string
+	FileUrl string
 	Score   int
 	Rating  string
 	Tags    string
