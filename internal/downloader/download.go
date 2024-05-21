@@ -110,12 +110,19 @@ func (bd BatchDownload) Download(posts []tagparser.PostTags) error {
 		if err != nil {
 			return err
 		}
+		hstring := fmt.Sprintf("%x", h.Sum(nil))
 
-		res = bd.DB.Where("hash = ?", fmt.Sprintf("%x", h.Sum(nil))).
-			First(tagparser.DBTags{Hash: fmt.Sprintf("%x", h.Sum(nil))})
-		if !errors.Is(res.Error, gorm.ErrRecordNotFound) || res.Error == nil {
+		res = bd.DB.Where("hash = ?",
+			hstring,
+		).First(&tagparser.DBTags{
+			Hash: hstring,
+		})
+		if !errors.Is(res.Error, gorm.ErrRecordNotFound) ||
+			res.Error == nil {
 			os.Remove(tmpFilePath)
-			return nil
+			overallBar.Add(1)
+			bd.DB.Create(j.ConvertToDB(fmt.Sprintf("%x", h.Sum(nil))))
+			continue
 		}
 
 		err = os.Rename(tmpFilePath, newFileName())
