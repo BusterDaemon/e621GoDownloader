@@ -278,7 +278,7 @@ func (c Rule34Collector) Scrap() ([]tagparser.PostTags, error) {
 
 	coll.OnRequest(func(r *colly.Request) {
 		c.Logger.Println("Visiting:", r.URL)
-		if (c.MaxScrapPages != nil && *c.MaxScrapPages > 0) &&
+		if (c.MaxScrapPages != nil || *c.MaxScrapPages > 0) &&
 			pagesVisited >= *c.MaxScrapPages {
 			r.Abort()
 		}
