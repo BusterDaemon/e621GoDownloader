@@ -50,6 +50,7 @@ type E621Scraper struct {
 	Proxy        string
 	TagList      []string
 	MaxPageLimit uint
+	PostLimit    uint
 	WaitTime     uint
 	Logger       *log.Logger
 }
@@ -119,8 +120,8 @@ func (s E621Scraper) Scrap() []Post {
 		if s.MaxPageLimit != 0 && i > int(s.MaxPageLimit) {
 			break
 		}
-		url := fmt.Sprintf("https://e621.net/posts.json?limit=320&page=%d&tags=%s%%20order:created_at",
-			i, tagString,
+		url := fmt.Sprintf("https://e621.net/posts.json?limit=%d&page=%d&tags=%s%%20order:created_at",
+			s.PostLimit, i, tagString,
 		)
 
 		s.Logger.Printf("Dialing: %s", url)
