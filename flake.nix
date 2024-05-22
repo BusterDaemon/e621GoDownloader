@@ -26,6 +26,7 @@
             golangci-lint
 
 	    gcc
+	    sqlite
           ];
         };
       });

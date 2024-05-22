@@ -1,15 +1,15 @@
 package parsers
 
 type Post struct {
-	Width   int
-	Height  int
-	FileExt string
-	Hash    string
-	FileUrl string
-	Score   int
-	Rating  string
-	Tags    string
-	Sources string
+	Width   int    `json:"width"`
+	Height  int    `json:"height"`
+	FileExt string `json:"ext"`
+	Hash    string `json:"md5"`
+	FileUrl string `json:"file_url"`
+	Score   int    `json:"score"`
+	Rating  string `json:"rating"`
+	Tags    string `json:"tags"`
+	Sources string `json:"sources"`
 }
 
 func convertArray(arr []string) string {
