@@ -12,14 +12,12 @@ import (
 )
 
 type Eshka struct {
-	// Id   int `json:"id"`
 	File struct {
 		Width  int    `json:"width"`
 		Height int    `json:"height"`
 		Ext    string `json:"ext"`
-		// Size   int    `json:"size"`
-		Hash string `json:"md5"`
-		Url  string `json:"url"`
+		Hash   string `json:"md5"`
+		Url    string `json:"url"`
 	} `json:"file"`
 	Score struct {
 		Total int `json:"total"`
@@ -34,12 +32,6 @@ type Eshka struct {
 	} `json:"tags"`
 	Rating  string   `json:"rating"`
 	Sources []string `json:"sources"`
-	// Pools         []int    `json:"pools"`
-	// Relationships struct {
-	// 	ParentID    int   `json:"parent_id"`
-	// 	HasChildren bool  `json:"has_children"`
-	// 	Children    []int `json:"children"`
-	// } `json:"relationships"`
 }
 
 type E621Posts struct {
