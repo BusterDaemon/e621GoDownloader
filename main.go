@@ -1,100 +1,112 @@
 package main
 
 import (
-	"buster_daemon/e621PoolsDownloader/internal/collector"
-	tagparser "buster_daemon/e621PoolsDownloader/internal/collector/tag_parser"
-	"buster_daemon/e621PoolsDownloader/internal/database"
-	"buster_daemon/e621PoolsDownloader/internal/downloader"
-	"buster_daemon/e621PoolsDownloader/internal/env"
-	"fmt"
+	"buster_daemon/e621PoolsDownloader/internal/download"
+	"buster_daemon/e621PoolsDownloader/internal/parsers"
 	"log"
 	"os"
 
-	flag "github.com/spf13/pflag"
+	"github.com/urfave/cli/v2"
 )
 
 func main() {
-	poolID := flag.Int("poolID", 0, "Pool ID to download")
-	waitTime := flag.Int("wait", 5, "Wait time between downloading (seconds)")
-	scrapPosts := flag.Bool("scrapPosts", false, "Scrap posts or pools")
-	postsTags := flag.String("pTags", "",
-		"Search tags used to scrap posts. Delimited by commas.")
-	maxPostPages := flag.Uint("maxPostPages", 0,
-		"Maximum pages to scrap posts (0 = Unlimited)")
-	outDir := flag.String("out", "./defOut/", "Output directory")
-	proxyUrl := flag.String("proxy", "", "Proxy URL")
-	dbPath := flag.String(
-		"dbPath",
-		"downloaded.db",
-		"Path to database that stores download history",
-	)
-	booru := flag.String("booru", "e621", "Booru Type")
-	flag.Parse()
+	var c = &cli.App{
+		Name: "Booru Downloader",
+		Commands: []*cli.Command{
+			{
+				Name:    "download",
+				Aliases: []string{"dw"},
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:  "booru",
+						Usage: "which booru to parse",
+						Value: "e621",
+					},
+					&cli.StringSliceFlag{
+						Name:     "tags",
+						Required: true,
+						Usage:    "tags for post searching",
+					},
+					&cli.StringFlag{
+						Name:  "proxy",
+						Usage: "proxy server to connect",
+					},
+					&cli.PathFlag{
+						Name:  "db",
+						Usage: "path to SQLite database",
+						Value: "./downloaded.db",
+					},
+					&cli.PathFlag{
+						Name:    "out",
+						Aliases: []string{"o"},
+						Usage:   "path to download directory",
+						Value:   "./downloaded",
+					},
+					&cli.UintFlag{
+						Name:  "posts",
+						Value: 320,
+						Usage: "maximum posts for page",
+					},
+					&cli.UintFlag{
+						Name:  "pages",
+						Value: 0,
+						Usage: "maximum pages to parse (0 - unlimited)",
+					},
+					&cli.UintFlag{
+						Name:  "wait",
+						Value: 1,
+						Usage: "wait time for downloads and API parsing",
+					},
+				},
+				Action: func(ctx *cli.Context) error {
+					var (
+						booru    string   = ctx.String("booru")
+						tags     []string = ctx.StringSlice("tags")
+						proxy    string   = ctx.String("proxy")
+						maxPosts uint     = ctx.Uint("posts")
+						maxPages uint     = ctx.Uint("pages")
+						wait     uint     = ctx.Uint("wait")
+						dbPath   string   = ctx.Path("db")
+						outPath  string   = ctx.Path("out")
+						posts    []parsers.Post
+					)
+					switch booru {
+					case "e621":
+						posts = parsers.E621Scraper{
+							Proxy:        proxy,
+							TagList:      tags,
+							MaxPageLimit: maxPages,
+							PostLimit:    maxPosts,
+							WaitTime:     wait,
+							Logger:       log.Default(),
+						}.Scrap()
+					case "rule34":
+						posts = parsers.Rule34Scraper{
+							PostLimit:    maxPosts,
+							MaxPageLimit: maxPages,
+							Tags:         tags,
+							Proxy:        proxy,
+							WaitTime:     wait,
+							Logger:       log.Default(),
+						}.Scrap()
+					}
 
-	logg := log.New(os.Stderr, "[DEBUG] ", 2)
-
-	err := env.GetEnvData(waitTime, maxPostPages, outDir, proxyUrl, dbPath)
-	if err != nil {
-		fmt.Println(err)
+					err := download.Download{
+						Proxy:     proxy,
+						DBPath:    dbPath,
+						OutputDir: outPath,
+						Wait:      wait,
+						Logger:    log.Default(),
+					}.DwPosts(posts)
+					if err != nil {
+						println(err)
+						return err
+					}
+					return nil
+				},
+			},
+		},
 	}
 
-	if *poolID == 0 && !*scrapPosts {
-		flag.Usage()
-		return
-	}
-
-	if *postsTags == "" && *scrapPosts {
-		flag.Usage()
-		return
-	}
-
-	db, err := database.New(*dbPath)
-	if err != nil {
-		panic(err)
-	}
-	var urls []tagparser.PostTags
-
-	switch *booru {
-	case "e621":
-		urls, err = collector.E621Collector{
-			ProxyURL:      proxyUrl,
-			PoolID:        poolID,
-			PostScrap:     *scrapPosts,
-			PostTags:      postsTags,
-			MaxScrapPages: maxPostPages,
-			Logger:        logg,
-			DB:            db,
-		}.Scrap()
-		if err != nil {
-			log.Fatalln(err)
-		}
-	case "rule34":
-		urls, err = collector.Rule34Collector{
-			ProxyURL:      proxyUrl,
-			PoolID:        poolID,
-			PostScrap:     *scrapPosts,
-			PostTags:      postsTags,
-			MaxScrapPages: maxPostPages,
-			Logger:        logg,
-			DB:            db,
-		}.Scrap()
-		if err != nil {
-			logg.Fatal(err)
-		}
-	default:
-		flag.Usage()
-		return
-	}
-
-	err = downloader.BatchDownload{
-		WaitBtwDownloads: uint(*waitTime),
-		OutputDir:        *outDir,
-		ProxyUrl:         proxyUrl,
-		Logger:           logg,
-		ScrapPosts:       scrapPosts,
-		DB:               db,
-	}.Download(urls)
-	if err != nil {
-		log.Fatalln(err)
-	}
+	c.Run(os.Args)
 }
