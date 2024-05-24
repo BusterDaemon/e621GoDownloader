@@ -57,6 +57,12 @@ func main() {
 						Value: 1,
 						Usage: "wait time for downloads and API parsing",
 					},
+					&cli.UintFlag{
+						Name:    "threads",
+						Aliases: []string{"j"},
+						Value:   1,
+						Usage:   "how many threads will be download files",
+					},
 				},
 				Action: func(ctx *cli.Context) error {
 					var (
@@ -68,6 +74,7 @@ func main() {
 						wait     uint     = ctx.Uint("wait")
 						dbPath   string   = ctx.Path("db")
 						outPath  string   = ctx.Path("out")
+						threads  uint     = ctx.Uint("threads")
 						posts    []parsers.Post
 					)
 					switch booru {
@@ -96,6 +103,7 @@ func main() {
 						DBPath:    dbPath,
 						OutputDir: outPath,
 						Wait:      wait,
+						ParUnits:  threads,
 						Logger:    log.Default(),
 					}.DwPosts(posts)
 					if err != nil {

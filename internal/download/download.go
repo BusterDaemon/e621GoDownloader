@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/schollz/progressbar/v3"
@@ -24,6 +25,7 @@ type Download struct {
 	DBPath    string
 	OutputDir string
 	Wait      uint
+	ParUnits  uint
 	Logger    *log.Logger
 }
 
@@ -69,70 +71,84 @@ func (d Download) DwPosts(p []parsers.Post) error {
 		progressbar.OptionSetDescription("Total Downloaded"),
 		progressbar.OptionSetVisibility(true),
 		progressbar.OptionShowCount(),
-		progressbar.OptionSetWriter(os.Stderr))
+		progressbar.OptionSetWriter(os.Stderr),
+	)
+	var wg sync.WaitGroup
+	chunkSize := len(p) / int(d.ParUnits)
 
-	for j, i := range p {
-		res := db.Where("hash = ?", i.Hash).First(&parsers.Post{
-			Hash: i.Hash,
-		}).Order("file_url DESC")
-		if !errors.Is(res.Error, gorm.ErrRecordNotFound) {
-			d.Logger.Println("Already downloaded skipping...")
-			totProgress.Add(1)
-			continue
-		}
+	for i := 0; i < int(d.ParUnits); i++ {
+		wg.Add(1)
+		go func(threadID int) {
+			var start = i * chunkSize
+			var end = start + chunkSize
+			if threadID == int(d.ParUnits)-1 {
+				end = len(p)
+			}
+			defer wg.Done()
+			for j := start; j < end; j++ {
+				res := db.Where("hash = ?", p[j].Hash).First(&parsers.Post{
+					Hash: p[j].Hash,
+				}).Order("file_url DESC")
+				if !errors.Is(res.Error, gorm.ErrRecordNotFound) {
+					d.Logger.Println("Already downloaded skipping...")
+					totProgress.Add(1)
+					continue
+				}
 
-		f, err := os.CreateTemp(d.OutputDir, "*")
-		if err != nil {
-			d.Logger.Println(err)
-			totProgress.Add(1)
-			continue
-		}
+				f, err := os.CreateTemp(d.OutputDir, "*")
+				if err != nil {
+					d.Logger.Println(err)
+					totProgress.Add(1)
+					continue
+				}
 
-		resp, err := c.Get(i.FileUrl)
-		if err != nil {
-			log.Println(err)
-			totProgress.Add(1)
-			continue
-		}
-		defer resp.Body.Close()
-		defer f.Close()
+				resp, err := c.Get(p[j].FileUrl)
+				if err != nil {
+					log.Println(err)
+					totProgress.Add(1)
+					continue
+				}
+				defer resp.Body.Close()
+				defer f.Close()
 
-		dwProgress := progressbar.DefaultBytes(resp.ContentLength,
-			fmt.Sprintf("Downloading: %s", fNameUrl(i.FileUrl)))
+				dwProgress := progressbar.DefaultBytes(resp.ContentLength,
+					fmt.Sprintf("Downloading: %s", fNameUrl(p[j].FileUrl)))
 
-		_, err = io.Copy(io.MultiWriter(
-			f, dwProgress,
-		), resp.Body)
-		if err != nil {
-			log.Println(err)
-			totProgress.Add(1)
-			os.Remove(f.Name())
-			continue
-		}
+				_, err = io.Copy(io.MultiWriter(
+					f, dwProgress,
+				), resp.Body)
+				if err != nil {
+					log.Println(err)
+					totProgress.Add(1)
+					os.Remove(f.Name())
+					continue
+				}
 
-		os.Rename(f.Name(), filepath.Join(
-			d.OutputDir, fNameUrl(i.FileUrl),
-		))
-		meta, _ := os.Create(
-			filepath.Join(
-				d.OutputDir,
-				func() string {
-					sName := strings.Split(fNameUrl(i.FileUrl), ".")
-					return sName[0] + ".json"
-				}(),
-			),
-		)
-		defer meta.Close()
+				os.Rename(f.Name(), filepath.Join(
+					d.OutputDir, fNameUrl(p[j].FileUrl),
+				))
+				meta, _ := os.Create(
+					filepath.Join(
+						d.OutputDir,
+						func() string {
+							sName := strings.Split(fNameUrl(p[j].FileUrl), ".")
+							return sName[0] + ".json"
+						}(),
+					),
+				)
+				defer meta.Close()
 
-		mt := json.NewEncoder(meta)
-		mt.Encode(i)
-		db.Create(i)
-		totProgress.Add(1)
-		if j < len(p)-1 {
-			time.Sleep(time.Duration(d.Wait) * time.Second)
-		}
+				mt := json.NewEncoder(meta)
+				mt.Encode(p[j])
+				db.Create(p[j])
+				totProgress.Add(1)
+				if j < len(p)-1 {
+					time.Sleep(time.Duration(d.Wait) * time.Second)
+				}
+			}
+		}(i)
 	}
-
+	wg.Wait()
 	return nil
 }
 
