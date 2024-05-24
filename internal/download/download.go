@@ -1,7 +1,7 @@
 package download
 
 import (
-	"buster_daemon/e621PoolsDownloader/internal/parsers"
+	"buster_daemon/boorus_downloader/internal/parsers"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -84,7 +84,6 @@ func (d Download) DwPosts(p []parsers.Post) error {
 			if threadID == int(d.ParUnits)-1 {
 				end = len(p)
 			}
-			defer wg.Done()
 			for j := start; j < end; j++ {
 				res := db.Where("hash = ?", p[j].Hash).First(&parsers.Post{
 					Hash: p[j].Hash,
@@ -110,6 +109,7 @@ func (d Download) DwPosts(p []parsers.Post) error {
 				}
 				defer resp.Body.Close()
 				defer f.Close()
+				defer wg.Done()
 
 				dwProgress := progressbar.DefaultBytes(resp.ContentLength,
 					fmt.Sprintf("Downloading: %s", fNameUrl(p[j].FileUrl)))
@@ -142,9 +142,7 @@ func (d Download) DwPosts(p []parsers.Post) error {
 				mt.Encode(p[j])
 				db.Create(p[j])
 				totProgress.Add(1)
-				if j < len(p)-1 {
-					time.Sleep(time.Duration(d.Wait) * time.Second)
-				}
+				time.Sleep(time.Duration(d.Wait) * time.Second)
 			}
 		}(i)
 	}

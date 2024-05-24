@@ -1,8 +1,8 @@
 package main
 
 import (
-	"buster_daemon/e621PoolsDownloader/internal/download"
-	"buster_daemon/e621PoolsDownloader/internal/parsers"
+	"buster_daemon/boorus_downloader/internal/download"
+	"buster_daemon/boorus_downloader/internal/parsers"
 	"log"
 	"os"
 
