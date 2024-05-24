@@ -80,9 +80,10 @@ func (r Rule34Scraper) Scrap() []Post {
 	r.Logger.Println("Parsing tag list")
 	for i, j := range r.Tags {
 		j = strings.ReplaceAll(j, " ", "_")
+		j = url.QueryEscape(j)
 		tags += j
 		if i < len(r.Tags)-1 {
-			tags += "%20"
+			tags += "+"
 		}
 	}
 

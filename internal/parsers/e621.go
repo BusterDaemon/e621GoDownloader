@@ -102,9 +102,10 @@ func (s E621Scraper) Scrap() []Post {
 	s.Logger.Println("Parsing tag list", s.TagList)
 	for j, k := range s.TagList {
 		k = strings.ReplaceAll(k, " ", "_")
+		k = url.QueryEscape(k)
 		tagString += k
 		if j < len(s.TagList)-1 {
-			tagString += "%20"
+			tagString += "+"
 		}
 	}
 
@@ -112,7 +113,7 @@ func (s E621Scraper) Scrap() []Post {
 		if s.MaxPageLimit != 0 && i > int(s.MaxPageLimit) {
 			break
 		}
-		url := fmt.Sprintf("https://e621.net/posts.json?limit=%d&page=%d&tags=%s%%20order:created_at",
+		url := fmt.Sprintf("https://e621.net/posts.json?limit=%d&page=%d&tags=%s+order:created_at",
 			s.PostLimit, i, tagString,
 		)
 
