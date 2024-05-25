@@ -109,7 +109,6 @@ func (d Download) DwPosts(p []parsers.Post) error {
 				}
 				defer resp.Body.Close()
 				defer f.Close()
-				defer wg.Done()
 
 				dwProgress := progressbar.DefaultBytes(resp.ContentLength,
 					fmt.Sprintf("Downloading: %s", fNameUrl(p[j].FileUrl)))
@@ -144,6 +143,7 @@ func (d Download) DwPosts(p []parsers.Post) error {
 				totProgress.Add(1)
 				time.Sleep(time.Duration(d.Wait) * time.Second)
 			}
+			wg.Done()
 		}(i)
 	}
 	wg.Wait()
