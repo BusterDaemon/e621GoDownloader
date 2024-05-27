@@ -12,6 +12,10 @@ type Post struct {
 	Sources string `json:"sources"`
 }
 
+type Parserer interface {
+	Scrap() []Post
+}
+
 func convertArray(arr []string) string {
 	var total string
 	for i, j := range arr {
