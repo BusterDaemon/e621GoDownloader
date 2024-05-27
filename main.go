@@ -3,6 +3,7 @@ package main
 import (
 	"buster_daemon/boorus_downloader/internal/download"
 	"buster_daemon/boorus_downloader/internal/parsers"
+	"fmt"
 	"log"
 	"os"
 
@@ -63,6 +64,11 @@ func main() {
 						Value:   1,
 						Usage:   "how many threads will be download files",
 					},
+					&cli.BoolFlag{
+						Name:  "fix",
+						Value: false,
+						Usage: "fix metadata json files",
+					},
 				},
 				Action: func(ctx *cli.Context) error {
 					var (
@@ -75,40 +81,51 @@ func main() {
 						dbPath   string   = ctx.Path("db")
 						outPath  string   = ctx.Path("out")
 						threads  uint     = ctx.Uint("threads")
+						fix      bool     = ctx.Bool("fix")
 						posts    []parsers.Post
+						parser   parsers.Parserer
 					)
 					switch booru {
 					case "e621":
-						posts = parsers.E621Scraper{
+						parser = parsers.E621Scraper{
 							Proxy:        proxy,
 							TagList:      tags,
 							MaxPageLimit: maxPages,
 							PostLimit:    maxPosts,
 							WaitTime:     wait,
 							Logger:       log.Default(),
-						}.Scrap()
+						}
 					case "rule34":
-						posts = parsers.Rule34Scraper{
+						parser = parsers.Rule34Scraper{
 							PostLimit:    maxPosts,
 							MaxPageLimit: maxPages,
 							Tags:         tags,
 							Proxy:        proxy,
 							WaitTime:     wait,
 							Logger:       log.Default(),
-						}.Scrap()
+						}
 					}
-
-					err := download.Download{
-						Proxy:     proxy,
-						DBPath:    dbPath,
-						OutputDir: outPath,
-						Wait:      wait,
-						ParUnits:  threads,
-						Logger:    log.Default(),
-					}.DwPosts(posts)
-					if err != nil {
-						println(err)
-						return err
+					switch fix {
+					case true:
+						err := parsers.FixMetadata(dbPath, outPath, parser)
+						if err != nil {
+							fmt.Println(err)
+							return err
+						}
+					case false:
+						posts = parser.Scrap()
+						err := download.Download{
+							Proxy:     proxy,
+							DBPath:    dbPath,
+							OutputDir: outPath,
+							Wait:      wait,
+							ParUnits:  threads,
+							Logger:    log.Default(),
+						}.DwPosts(posts)
+						if err != nil {
+							println(err)
+							return err
+						}
 					}
 					return nil
 				},
