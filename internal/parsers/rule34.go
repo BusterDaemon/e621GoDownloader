@@ -41,7 +41,7 @@ func (r Rule34Scraper) convertPosts(p []Rulka) []Post {
 			FileUrl: i.Url,
 			Score:   i.Score,
 			Rating:  string(i.Rating[0]),
-			Tags:    i.Rating,
+			Tags:    i.Tags,
 			FileExt: func() string {
 				extSplit := strings.Split(i.Url, ".")
 				return extSplit[len(extSplit)-1]
