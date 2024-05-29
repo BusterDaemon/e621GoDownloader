@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 
 	"github.com/urfave/cli/v2"
 )
@@ -85,6 +86,12 @@ func main() {
 						posts    []parsers.Post
 						parser   parsers.Parserer
 					)
+					if len(tags) == 1 {
+						var tmpT []string
+						t := strings.Split(tags[0], ";")
+						tmpT = append(tmpT, t...)
+						tags = tmpT
+					}
 					switch booru {
 					case "e621":
 						parser = parsers.E621Scraper{
