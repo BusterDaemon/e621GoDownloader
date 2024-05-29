@@ -72,10 +72,7 @@ func (d Download) DwPosts(p []parsers.Post) error {
 		"Mozilla/5.0 (Linux; U; Android-4.0.3; en-us; Galaxy Nexus Build/IML74K) AppleWebKit/535.7 (KHTML, like Gecko) CrMo/16.0.912.75 Mobile Safari/535.7",
 	}
 	rng := rand.New(rand.NewSource(time.Now().UnixNano()))
-	fNameUrl := func(url string) string {
-		splUrl := strings.Split(url, "/")
-		return splUrl[len(splUrl)-1]
-	}
+
 	totProgress := progressbar.NewOptions(len(p),
 		progressbar.OptionFullWidth(),
 		progressbar.OptionSetDescription("Total Downloaded"),
@@ -129,7 +126,7 @@ func (d Download) DwPosts(p []parsers.Post) error {
 				defer f.Close()
 
 				dwProgress := progressbar.DefaultBytes(resp.ContentLength,
-					fmt.Sprintf("Downloading: %s", fNameUrl(p[j].FileUrl)))
+					fmt.Sprintf("Downloading: %s", p[j].Hash+"."+p[j].FileExt))
 
 				_, err = io.Copy(io.MultiWriter(
 					f, dwProgress,
@@ -142,13 +139,13 @@ func (d Download) DwPosts(p []parsers.Post) error {
 				}
 
 				os.Rename(f.Name(), filepath.Join(
-					d.OutputDir, fNameUrl(p[j].FileUrl),
+					d.OutputDir, p[j].Hash+"."+p[j].FileExt,
 				))
 				meta, _ := os.Create(
 					filepath.Join(
 						d.OutputDir,
 						func() string {
-							sName := strings.Split(fNameUrl(p[j].FileUrl), ".")
+							sName := strings.Split(p[j].Hash, ".")
 							return sName[0] + ".json"
 						}(),
 					),
