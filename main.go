@@ -66,6 +66,11 @@ func main() {
 						Usage:   "how many threads will be download files",
 					},
 					&cli.BoolFlag{
+						Name:  "dsort",
+						Value: true,
+						Usage: "use date sorting instead of score sorting (no effect for rule34)",
+					},
+					&cli.BoolFlag{
 						Name:  "fix",
 						Value: false,
 						Usage: "fix metadata json files",
@@ -82,6 +87,7 @@ func main() {
 						dbPath   string   = ctx.Path("db")
 						outPath  string   = ctx.Path("out")
 						threads  uint     = ctx.Uint("threads")
+						dsort    bool     = ctx.Bool("dsort")
 						fix      bool     = ctx.Bool("fix")
 						posts    []parsers.Post
 						parser   parsers.Parserer
@@ -100,6 +106,7 @@ func main() {
 							MaxPageLimit: maxPages,
 							PostLimit:    maxPosts,
 							WaitTime:     wait,
+							DSorter:      dsort,
 							Logger:       log.Default(),
 						}
 					case "rule34":
