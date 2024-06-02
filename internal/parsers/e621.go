@@ -44,6 +44,7 @@ type E621Scraper struct {
 	MaxPageLimit uint
 	PostLimit    uint
 	WaitTime     uint
+	DSorter      bool
 	Logger       *log.Logger
 }
 
@@ -78,6 +79,13 @@ func (s E621Scraper) Scrap() []Post {
 	var (
 		tagString string
 		posts     E621Posts
+		sorter    string = func() string {
+			s.Logger.Println("SORTER IS", s.DSorter)
+			if !s.DSorter {
+				return "+order:score"
+			}
+			return "+order:created_at"
+		}()
 	)
 
 	trs := http.Transport{
@@ -113,7 +121,7 @@ func (s E621Scraper) Scrap() []Post {
 		if s.MaxPageLimit != 0 && i > int(s.MaxPageLimit) {
 			break
 		}
-		url := fmt.Sprintf("https://e621.net/posts.json?limit=%d&page=%d&tags=%s+order:created_at",
+		url := fmt.Sprintf("https://e621.net/posts.json?limit=%d&page=%d&tags=%s"+sorter,
 			s.PostLimit, i, tagString,
 		)
 
