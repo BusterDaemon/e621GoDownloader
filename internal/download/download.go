@@ -1,6 +1,7 @@
 package download
 
 import (
+	"bufio"
 	"buster_daemon/boorus_downloader/internal/parsers"
 	"encoding/json"
 	"errors"
@@ -61,7 +62,7 @@ func (d Download) DwPosts(p []parsers.Post) error {
 	}
 	c := http.Client{
 		Transport: &trs,
-		Timeout:   30 * time.Second,
+		Timeout:   1200 * time.Second,
 	}
 	userAgents := []string{
 		"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36",
@@ -128,11 +129,20 @@ func (d Download) DwPosts(p []parsers.Post) error {
 				dwProgress := progressbar.DefaultBytes(resp.ContentLength,
 					fmt.Sprintf("Downloading: %s", p[j].Hash+"."+p[j].FileExt))
 
+				buf := bufio.NewReader(resp.Body)
+
 				_, err = io.Copy(io.MultiWriter(
 					f, dwProgress,
-				), resp.Body)
+				), buf)
 				if err != nil {
 					log.Println(err)
+					totProgress.Add(1)
+					os.Remove(f.Name())
+					continue
+				}
+				_, err = buf.WriteTo(f)
+				if err != nil {
+					d.Logger.Println(err)
 					totProgress.Add(1)
 					os.Remove(f.Name())
 					continue
