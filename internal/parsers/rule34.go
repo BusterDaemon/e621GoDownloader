@@ -76,7 +76,7 @@ func (r Rule34Scraper) Scrap() []Post {
 		Transport: &trs,
 	}
 
-	base_url := "https://rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&"
+	base_url := "https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&"
 	r.Logger.Println("Parsing tag list")
 	for i, j := range r.Tags {
 		j = strings.ReplaceAll(j, " ", "_")
@@ -106,11 +106,12 @@ func (r Rule34Scraper) Scrap() []Post {
 		var posts []Rulka
 		err = json.Unmarshal(body, &posts)
 		if err != nil {
-			r.Logger.Panicln("Cannot parse response")
+			r.Logger.Println("Cannot parse response")
 			r.Logger.Println(err)
 			continue
 		}
 		if len(posts) == 0 {
+			r.Logger.Println("Nothing found")
 			break
 		}
 

@@ -141,6 +141,7 @@ func (s E621Scraper) Scrap() []Post {
 		}
 
 		if len(page_posts.Post) == 0 {
+			log.Println("Nothing found")
 			break
 		}
 
