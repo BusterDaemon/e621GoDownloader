@@ -80,7 +80,6 @@ func (s E621Scraper) Scrap() []Post {
 		tagString string
 		posts     E621Posts
 		sorter    string = func() string {
-			s.Logger.Println("SORTER IS", s.DSorter)
 			if !s.DSorter {
 				return "+order:score"
 			}
