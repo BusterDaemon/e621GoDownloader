@@ -97,7 +97,7 @@ func (d Download) DwPosts(p []parsers.Post) error {
 					continue
 				}
 
-				f, err := os.CreateTemp(d.OutputDir, "*")
+				f, err := os.CreateTemp(d.OutputDir, "tmp-f")
 				if err != nil {
 					d.Logger.Println(err)
 					totProgress.Add(1)
@@ -123,17 +123,19 @@ func (d Download) DwPosts(p []parsers.Post) error {
 				_, err = io.Copy(io.MultiWriter(
 					f, dwProgress,
 				), buf)
+				var endErr = func(err error, file *os.File,
+					progBar *progressbar.ProgressBar) {
+					d.Logger.Println(err)
+					progBar.Add(1)
+					os.Remove(file.Name())
+				}
 				if err != nil {
-					log.Println(err)
-					totProgress.Add(1)
-					os.Remove(f.Name())
+					endErr(err, f, totProgress)
 					continue
 				}
 				_, err = buf.WriteTo(f)
 				if err != nil {
-					d.Logger.Println(err)
-					totProgress.Add(1)
-					os.Remove(f.Name())
+					endErr(err, f, totProgress)
 					continue
 				}
 
