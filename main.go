@@ -113,26 +113,10 @@ func main() {
 						parser = parsers.Rule34Scraper{
 							PostLimit:    maxPosts,
 							MaxPageLimit: maxPages,
-							// Removing uncompatible tags
-							// It's ugly but it just works
-							Tags: func() []string {
-								for _, i := range tags {
-									if strings.Contains(i, "rating") {
-										var rTags []string
-										for _, i := range tags {
-											if strings.Contains(i, "rating") {
-												continue
-											}
-											rTags = append(rTags, i)
-										}
-										return rTags
-									}
-								}
-								return tags
-							}(),
-							Proxy:    proxy,
-							WaitTime: wait,
-							Logger:   log.Default(),
+							Tags:         tags,
+							Proxy:        proxy,
+							WaitTime:     wait,
+							Logger:       log.Default(),
 						}
 					}
 					switch fix {
