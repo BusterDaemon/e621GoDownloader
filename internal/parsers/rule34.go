@@ -98,7 +98,8 @@ func (r Rule34Scraper) Scrap() []Post {
 		r.Logger.Printf("Visiting %s", url)
 		resp, err := c.Get(url)
 		if err != nil {
-			continue
+			r.Logger.Println(err)
+			break
 		}
 		defer resp.Body.Close()
 

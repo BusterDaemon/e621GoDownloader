@@ -127,7 +127,8 @@ func (s E621Scraper) Scrap() []Post {
 		s.Logger.Printf("Dialing: %s", url)
 		resp, err := c.Get(url)
 		if err != nil {
-			continue
+			s.Logger.Println(err)
+			break
 		}
 		defer resp.Body.Close()
 
