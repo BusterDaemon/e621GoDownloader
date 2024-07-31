@@ -34,6 +34,7 @@
 
 	    gcc
 	    sqlite
+	    delve
           ];
         };
       });
