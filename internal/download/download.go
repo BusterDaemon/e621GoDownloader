@@ -93,7 +93,6 @@ func (d Download) DwPosts(p *parsers.PostTable) error {
 		if err != nil {
 			log.Println(err)
 			totProgress.Add(1)
-			count.skipped++
 			count.failed++
 			continue
 		}
@@ -112,7 +111,6 @@ func (d Download) DwPosts(p *parsers.PostTable) error {
 			progBar *progressbar.ProgressBar) {
 			d.Logger.Println(err)
 			progBar.Add(1)
-			count.skipped++
 			count.failed++
 		}
 
@@ -146,7 +144,6 @@ func (d Download) DwPosts(p *parsers.PostTable) error {
 			d.Logger.Println(err)
 			f.Close()
 			os.Remove(f.Name())
-			count.skipped++
 			count.failed++
 			continue
 		}
@@ -164,7 +161,6 @@ func (d Download) DwPosts(p *parsers.PostTable) error {
 		if err != nil {
 			d.Logger.Println(err)
 			meta.Close()
-			count.skipped++
 			count.failed++
 			continue
 		}
@@ -179,8 +175,6 @@ func (d Download) DwPosts(p *parsers.PostTable) error {
 		time.Sleep(time.Duration(d.Wait) * time.Second)
 	}
 
-	fmt.Printf("\nDownloaded: %d files.\nSkipped: %d files.\n", count.downloaded,
-		count.skipped)
 	fmt.Printf("\n\nDownloaded: %d files.\nSkipped: %d files.\nFailed: %d files.", count.downloaded,
 		count.skipped, count.failed)
 	return nil
@@ -222,8 +216,7 @@ func (d Download) ValidateAndExistence(postTable *parsers.PostTable,
 				Hash: postTable.GetPostTable(i).Hash,
 			})
 		if !errors.Is(res.Error, gorm.ErrRecordNotFound) {
-			fmt.Println("Record exists, deleting from the list")
-			fmt.Printf("Record \"%s\" exists, deleting from the list", postTable.GetPostTable(i).Hash)
+			fmt.Printf("Record \"%s\" exists, deleting from the list\n", postTable.GetPostTable(i).Hash)
 			postTable.RemovePostTable(i)
 			c.skipped++
 			continue
