@@ -28,6 +28,10 @@ func (pt *PostTable) GetLengthTable() int {
 	return len(pt.postData)
 }
 
+func (pt *PostTable) GetMap() map[int]Post {
+	return pt.postData
+}
+
 func (pt *PostTable) PrintAll() {
 	for i := 0; i < len(pt.postData); i++ {
 		fmt.Printf("%#v\n", pt.postData[i])

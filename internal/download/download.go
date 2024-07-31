@@ -14,7 +14,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/schollz/progressbar/v3"
@@ -84,114 +83,98 @@ func (d Download) DwPosts(p *parsers.PostTable) error {
 		progressbar.OptionShowCount(),
 		progressbar.OptionSetWriter(os.Stderr),
 	)
-	var wg sync.WaitGroup
-	chunkSize := p.GetLengthTable() / int(d.ParUnits)
 
-	for i := 0; i < int(d.ParUnits); i++ {
-		wg.Add(1)
-		go func(threadID int) {
-			var start = i * chunkSize
-			var end = start + chunkSize
-			if threadID == int(d.ParUnits)-1 {
-				end = p.GetLengthTable()
-			}
-			for j := start; j < end; j++ {
-				// Initialise new buffer in RAM
-				rbuf := new(bytes.Buffer)
+	for _, v := range p.GetMap() {
+		// Initialise new buffer in RAM
+		rbuf := new(bytes.Buffer)
 
-				resp, err := c.Get(p.GetPostTable(j).FileUrl)
-				if err != nil {
-					log.Println(err)
-					totProgress.Add(1)
-					count.skipped++
-					continue
-				}
+		resp, err := c.Get(v.FileUrl)
+		if err != nil {
+			log.Println(err)
+			totProgress.Add(1)
+			count.skipped++
+			continue
+		}
 
-				resp.Request.Header.Set("User-Agent", "curl/8.8.0")
-				defer resp.Body.Close()
+		resp.Request.Header.Set("User-Agent", "curl/8.8.0")
+		defer resp.Body.Close()
 
-				dwProgress := progressbar.DefaultBytes(resp.ContentLength,
-					fmt.Sprintf(
-						"Downloading: %s", p.GetPostTable(j).Hash+"."+
-							p.GetPostTable(j).FileExt),
-				)
+		dwProgress := progressbar.DefaultBytes(resp.ContentLength,
+			fmt.Sprintf(
+				"Downloading: %s", v.Hash+"."+
+					v.FileExt),
+		)
 
-				rspBuf := bufio.NewReader(resp.Body)
-				var endErr = func(err error,
-					progBar *progressbar.ProgressBar) {
-					d.Logger.Println(err)
-					progBar.Add(1)
-					count.skipped++
-				}
+		rspBuf := bufio.NewReader(resp.Body)
+		var endErr = func(err error,
+			progBar *progressbar.ProgressBar) {
+			d.Logger.Println(err)
+			progBar.Add(1)
+			count.skipped++
+		}
 
-				_, err = io.Copy(io.MultiWriter(
-					rbuf, dwProgress,
-				), rspBuf)
-				if err != nil {
-					endErr(err, totProgress)
-					continue
-				}
+		_, err = io.Copy(io.MultiWriter(
+			rbuf, dwProgress,
+		), rspBuf)
+		if err != nil {
+			endErr(err, totProgress)
+			continue
+		}
 
-				_, err = rspBuf.WriteTo(rbuf)
-				if err != nil {
-					endErr(err, totProgress)
-					continue
-				}
+		_, err = rspBuf.WriteTo(rbuf)
+		if err != nil {
+			endErr(err, totProgress)
+			continue
+		}
 
-				f, err := os.Create(filepath.Join(
-					d.OutputDir, p.GetPostTable(j).Hash+"."+
-						p.GetPostTable(j).FileExt,
-				))
-				if err != nil {
-					d.Logger.Println(err)
-					f.Close()
-					count.skipped++
-					continue
-				}
+		f, err := os.Create(filepath.Join(
+			d.OutputDir, v.Hash+"."+
+				v.FileExt,
+		))
+		if err != nil {
+			d.Logger.Println(err)
+			f.Close()
+			count.skipped++
+			continue
+		}
 
-				_, err = io.Copy(f, rbuf)
-				if err != nil {
-					d.Logger.Println(err)
-					f.Close()
-					os.Remove(f.Name())
-					count.skipped++
-					continue
-				}
+		_, err = io.Copy(f, rbuf)
+		if err != nil {
+			d.Logger.Println(err)
+			f.Close()
+			os.Remove(f.Name())
+			count.skipped++
+			continue
+		}
 
-				meta, err := os.Create(
-					filepath.Join(
-						d.OutputDir,
-						func() string {
-							sName := strings.Split(
-								p.GetPostTable(j).
-									Hash, ".")
-							return sName[0] + ".json"
-						}(),
-					),
-				)
-				if err != nil {
-					d.Logger.Println(err)
-					meta.Close()
-					count.skipped++
-					continue
-				}
+		meta, err := os.Create(
+			filepath.Join(
+				d.OutputDir,
+				func() string {
+					sName := strings.Split(
+						v.Hash, ".")
+					return sName[0] + ".json"
+				}(),
+			),
+		)
+		if err != nil {
+			d.Logger.Println(err)
+			meta.Close()
+			count.skipped++
+			continue
+		}
 
-				mt := json.NewEncoder(meta)
-				mt.Encode(p.GetPostTable(j))
-				db.Create(p.GetPostTable(j))
-				totProgress.Add(1)
-				f.Close()
-				meta.Close()
-				count.downloaded++
-				time.Sleep(time.Duration(d.Wait) * time.Second)
-			}
-			wg.Done()
-		}(i)
+		mt := json.NewEncoder(meta)
+		mt.Encode(v)
+		db.Create(v)
+		totProgress.Add(1)
+		f.Close()
+		meta.Close()
+		count.downloaded++
+		time.Sleep(time.Duration(d.Wait) * time.Second)
 	}
-	wg.Wait()
 
-	fmt.Println("Total:")
-	fmt.Printf("Downloaded: %d files.\nSkipped: %d files.\n", count.downloaded,
+	fmt.Printf("\nDownloaded: %d files.\nSkipped: %d files.\n", count.downloaded,
 		count.skipped)
 	return nil
 }
