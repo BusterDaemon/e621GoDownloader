@@ -32,6 +32,7 @@ type Download struct {
 type counters struct {
 	downloaded uint
 	skipped    uint
+	failed     uint
 }
 
 func (d Download) DwPosts(p *parsers.PostTable) error {
@@ -39,6 +40,7 @@ func (d Download) DwPosts(p *parsers.PostTable) error {
 		count counters = counters{
 			downloaded: 0,
 			skipped:    0,
+			failed:     0,
 		}
 	)
 	db, err := d.connectDB()
@@ -92,6 +94,7 @@ func (d Download) DwPosts(p *parsers.PostTable) error {
 			log.Println(err)
 			totProgress.Add(1)
 			count.skipped++
+			count.failed++
 			continue
 		}
 
@@ -110,6 +113,7 @@ func (d Download) DwPosts(p *parsers.PostTable) error {
 			d.Logger.Println(err)
 			progBar.Add(1)
 			count.skipped++
+			count.failed++
 		}
 
 		_, err = io.Copy(io.MultiWriter(
@@ -143,6 +147,7 @@ func (d Download) DwPosts(p *parsers.PostTable) error {
 			f.Close()
 			os.Remove(f.Name())
 			count.skipped++
+			count.failed++
 			continue
 		}
 
@@ -160,6 +165,7 @@ func (d Download) DwPosts(p *parsers.PostTable) error {
 			d.Logger.Println(err)
 			meta.Close()
 			count.skipped++
+			count.failed++
 			continue
 		}
 
@@ -175,6 +181,8 @@ func (d Download) DwPosts(p *parsers.PostTable) error {
 
 	fmt.Printf("\nDownloaded: %d files.\nSkipped: %d files.\n", count.downloaded,
 		count.skipped)
+	fmt.Printf("\n\nDownloaded: %d files.\nSkipped: %d files.\nFailed: %d files.", count.downloaded,
+		count.skipped, count.failed)
 	return nil
 }
 
