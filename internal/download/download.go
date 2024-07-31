@@ -26,7 +26,6 @@ type Download struct {
 	DBPath    string
 	OutputDir string
 	Wait      uint
-	ParUnits  uint
 	Logger    *log.Logger
 }
 
