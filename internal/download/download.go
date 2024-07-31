@@ -223,6 +223,7 @@ func (d Download) ValidateAndExistence(postTable *parsers.PostTable,
 			})
 		if !errors.Is(res.Error, gorm.ErrRecordNotFound) {
 			fmt.Println("Record exists, deleting from the list")
+			fmt.Printf("Record \"%s\" exists, deleting from the list", postTable.GetPostTable(i).Hash)
 			postTable.RemovePostTable(i)
 			c.skipped++
 			continue
