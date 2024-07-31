@@ -13,7 +13,7 @@ type Post struct {
 }
 
 type Parserer interface {
-	Scrap() []Post
+	Scrap() *PostTable
 }
 
 func convertArray(arr []string) string {

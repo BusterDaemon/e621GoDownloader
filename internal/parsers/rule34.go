@@ -31,28 +31,28 @@ type Rule34Scraper struct {
 	Logger       *log.Logger
 }
 
-func (r Rule34Scraper) convertPosts(p []Rulka) []Post {
-	var totPosts []Post
-	for _, i := range p {
-		totPosts = append(totPosts, Post{
-			Width:   i.Width,
-			Height:  i.Height,
-			Hash:    i.Hash,
-			FileUrl: i.Url,
-			Score:   i.Score,
-			Rating:  string(i.Rating[0]),
-			Tags:    i.Tags,
+func (r Rule34Scraper) convertPosts(p []Rulka) *PostTable {
+	var posts *PostTable = NewPostTable()
+	for i, j := range p {
+		posts.AddPostTable(i, Post{
+			Width:   j.Width,
+			Height:  j.Height,
+			Hash:    j.Hash,
+			FileUrl: j.Url,
+			Score:   j.Score,
+			Rating:  string(j.Rating[0]),
+			Tags:    j.Tags,
 			FileExt: func() string {
-				extSplit := strings.Split(i.Url, ".")
+				extSplit := strings.Split(j.Url, ".")
 				return extSplit[len(extSplit)-1]
 			}(),
-			Sources: strings.ReplaceAll(i.Source, " ", ","),
+			Sources: strings.ReplaceAll(j.Source, " ", ","),
 		})
 	}
-	return totPosts
+	return posts
 }
 
-func (r Rule34Scraper) Scrap() []Post {
+func (r Rule34Scraper) Scrap() *PostTable {
 	var (
 		totPosts []Rulka
 		tags     string

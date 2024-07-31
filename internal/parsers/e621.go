@@ -48,34 +48,37 @@ type E621Scraper struct {
 	Logger       *log.Logger
 }
 
-func (s E621Posts) convert() []Post {
-	var totalPosts []Post
-	for _, i := range s.Post {
-		totalPosts = append(totalPosts, Post{
-			Width:   i.File.Width,
-			Height:  i.File.Height,
-			FileExt: i.File.Ext,
-			Hash:    i.File.Hash,
-			FileUrl: i.File.Url,
-			Score:   i.Score.Total,
-			Rating:  i.Rating,
+func (s E621Posts) convert() *PostTable {
+	var (
+		htab *PostTable = NewPostTable()
+	)
+
+	for i, j := range s.Post {
+		htab.AddPostTable(i, Post{
+			Width:   j.File.Width,
+			Height:  j.File.Height,
+			FileExt: j.File.Ext,
+			Hash:    j.File.Hash,
+			FileUrl: j.File.Url,
+			Score:   j.Score.Total,
+			Rating:  j.Rating,
 			Tags: func() string {
 				var massive []string
-				massive = append(massive, i.Tags.Artist...)
-				massive = append(massive, i.Tags.Character...)
-				massive = append(massive, i.Tags.General...)
-				massive = append(massive, i.Tags.Lore...)
-				massive = append(massive, i.Tags.Meta...)
-				massive = append(massive, i.Tags.Species...)
+				massive = append(massive, j.Tags.Artist...)
+				massive = append(massive, j.Tags.Character...)
+				massive = append(massive, j.Tags.General...)
+				massive = append(massive, j.Tags.Lore...)
+				massive = append(massive, j.Tags.Meta...)
+				massive = append(massive, j.Tags.Species...)
 				return convertArray(massive)
 			}(),
-			Sources: convertArray(i.Sources),
+			Sources: convertArray(j.Sources),
 		})
 	}
-	return totalPosts
+	return htab
 }
 
-func (s E621Scraper) Scrap() []Post {
+func (s E621Scraper) Scrap() *PostTable {
 	var (
 		tagString string
 		posts     E621Posts

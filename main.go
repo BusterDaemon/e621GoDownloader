@@ -89,7 +89,7 @@ func main() {
 						threads  uint     = ctx.Uint("threads")
 						dsort    bool     = ctx.Bool("dsort")
 						fix      bool     = ctx.Bool("fix")
-						posts    []parsers.Post
+						posts    *parsers.PostTable
 						parser   parsers.Parserer
 					)
 					if len(tags) == 1 {
