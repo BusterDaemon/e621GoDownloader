@@ -1,15 +1,18 @@
 package parsers
 
+import "time"
+
 type Post struct {
-	Width   int    `json:"width"`
-	Height  int    `json:"height"`
-	FileExt string `json:"ext"`
-	Hash    string `json:"md5"`
-	FileUrl string `json:"file_url"`
-	Score   int    `json:"score"`
-	Rating  string `json:"rating"`
-	Tags    string `json:"tags"`
-	Sources string `json:"sources"`
+	Width       int       `json:"width"`
+	Height      int       `json:"height"`
+	FileExt     string    `json:"ext"`
+	Hash        string    `json:"md5"`
+	FileUrl     string    `json:"file_url"`
+	Score       int       `json:"score"`
+	Rating      string    `json:"rating"`
+	Tags        string    `json:"tags"`
+	Sources     string    `json:"sources"`
+	DateCreated time.Time `json:"date_created"`
 }
 
 type Parserer interface {

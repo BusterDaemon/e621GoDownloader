@@ -30,8 +30,9 @@ type Eshka struct {
 		Lore      []string `json:"lore"`
 		Meta      []string `json:"meta"`
 	} `json:"tags"`
-	Rating  string   `json:"rating"`
-	Sources []string `json:"sources"`
+	Rating    string   `json:"rating"`
+	Sources   []string `json:"sources"`
+	CreatedAt string   `json:"created_at"`
 }
 
 type E621Posts struct {
@@ -54,6 +55,7 @@ func (s E621Posts) convert() *PostTable {
 	)
 
 	for i, j := range s.Post {
+		createDate, _ := time.Parse(time.RFC3339, j.CreatedAt)
 		htab.AddPostTable(i, Post{
 			Width:   j.File.Width,
 			Height:  j.File.Height,
@@ -72,7 +74,8 @@ func (s E621Posts) convert() *PostTable {
 				massive = append(massive, j.Tags.Species...)
 				return convertArray(massive)
 			}(),
-			Sources: convertArray(j.Sources),
+			Sources:     convertArray(j.Sources),
+			DateCreated: createDate,
 		})
 	}
 	return htab

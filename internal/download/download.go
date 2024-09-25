@@ -148,16 +148,17 @@ func (d Download) DwPosts(p *parsers.PostTable) error {
 			continue
 		}
 
-		meta, err := os.Create(
-			filepath.Join(
-				d.OutputDir,
-				func() string {
-					sName := strings.Split(
-						v.Hash, ".")
-					return sName[0] + ".json"
-				}(),
-			),
+		metaFilePath := filepath.Join(
+			d.OutputDir,
+			func() string {
+				sName := strings.Split(
+					v.Hash, ".")
+				return sName[0] + ".json"
+			}(),
 		)
+
+		meta, err := os.Create(metaFilePath)
+
 		if err != nil {
 			d.Logger.Println(err)
 			meta.Close()
@@ -169,6 +170,8 @@ func (d Download) DwPosts(p *parsers.PostTable) error {
 		mt.Encode(v)
 		db.Create(v)
 		totProgress.Add(1)
+		os.Chtimes(f.Name(), v.DateCreated, v.DateCreated)
+		os.Chtimes(metaFilePath, v.DateCreated, v.DateCreated)
 		f.Close()
 		meta.Close()
 		count.downloaded++
