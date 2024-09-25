@@ -25,3 +25,4 @@ defOut/*
 .direnv/*
 *.db
 .direnv
+tmp/*

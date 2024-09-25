@@ -20,6 +20,7 @@ type Rulka struct {
 	Score  int    `json:"score"`
 	Tags   string `json:"tags"`
 	Source string `json:"source"`
+	Change int64  `json:"change"`
 }
 
 type Rule34Scraper struct {
@@ -46,7 +47,8 @@ func (r Rule34Scraper) convertPosts(p []Rulka) *PostTable {
 				extSplit := strings.Split(j.Url, ".")
 				return extSplit[len(extSplit)-1]
 			}(),
-			Sources: strings.ReplaceAll(j.Source, " ", ","),
+			Sources:     strings.ReplaceAll(j.Source, " ", ","),
+			DateCreated: time.Unix(j.Change, 0),
 		})
 	}
 	return posts
