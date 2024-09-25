@@ -19,6 +19,7 @@ import (
 	"github.com/schollz/progressbar/v3"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 type Download struct {
@@ -184,7 +185,9 @@ func (d Download) DwPosts(p *parsers.PostTable) error {
 }
 
 func (d Download) connectDB() (*gorm.DB, error) {
-	db, err := gorm.Open(sqlite.Open(d.DBPath), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open(d.DBPath), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
 	if err != nil {
 		return nil, err
 	}
