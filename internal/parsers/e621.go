@@ -61,9 +61,20 @@ func (s E621Posts) convert() *PostTable {
 			Height:  j.File.Height,
 			FileExt: j.File.Ext,
 			Hash:    j.File.Hash,
-			FileUrl: j.File.Url,
-			Score:   j.Score.Total,
-			Rating:  j.Rating,
+			// FileUrl: j.File.Url,
+			FileUrl: func() string {
+				if j.File.Url != "" {
+					return j.File.Url
+				}
+
+				var base_url string = "https://static1.e621.net/data/"
+
+				return base_url + j.File.Hash[:2] + "/" +
+					string(j.File.Hash[2]) + string(j.File.Hash[3]) +
+					"/" + j.File.Hash + "." + j.File.Ext
+			}(),
+			Score:  j.Score.Total,
+			Rating: j.Rating,
 			Tags: func() string {
 				var massive []string
 				massive = append(massive, j.Tags.Artist...)
