@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-type Rulka struct {
+type Gelboorus struct {
 	Url    string `json:"file_url"`
 	Hash   string `json:"hash"`
 	Width  int    `json:"width"`
@@ -23,16 +23,19 @@ type Rulka struct {
 	Change int64  `json:"change"`
 }
 
-type Rule34Scraper struct {
+type GelboorusScraper struct {
+	BaseUrl      string
 	PostLimit    uint
 	MaxPageLimit uint
 	Tags         []string
 	Proxy        string
 	WaitTime     uint
 	Logger       *log.Logger
+	ApiLogin     string
+	ApiKey       string
 }
 
-func (r Rule34Scraper) convertPosts(p []Rulka) *PostTable {
+func (r GelboorusScraper) convertPosts(p []Gelboorus) *PostTable {
 	var posts *PostTable = NewPostTable()
 	for i, j := range p {
 		posts.AddPostTable(i, Post{
@@ -54,9 +57,9 @@ func (r Rule34Scraper) convertPosts(p []Rulka) *PostTable {
 	return posts
 }
 
-func (r Rule34Scraper) Scrap() *PostTable {
+func (r GelboorusScraper) Scrap() *PostTable {
 	var (
-		totPosts []Rulka
+		totPosts []Gelboorus
 		tags     string
 	)
 	trs := http.Transport{
@@ -78,7 +81,6 @@ func (r Rule34Scraper) Scrap() *PostTable {
 		Transport: &trs,
 	}
 
-	base_url := "https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&"
 	r.Logger.Println("Parsing tag list")
 	for i, j := range r.Tags {
 		j = strings.ReplaceAll(j, " ", "_")
@@ -94,10 +96,14 @@ func (r Rule34Scraper) Scrap() *PostTable {
 			break
 		}
 
-		url := base_url + fmt.Sprintf("limit=%d&pid=%d&tags=%s",
+		url := r.BaseUrl + fmt.Sprintf("limit=%d&pid=%d&tags=%s",
 			r.PostLimit, i-1, tags,
 		)
 		r.Logger.Printf("Visiting %s", url)
+		if r.ApiKey != "" {
+			url = fmt.Sprintf("%s&login=%s&api_key=%s", url, r.ApiLogin, r.ApiKey)
+		}
+
 		resp, err := c.Get(url)
 		if err != nil {
 			r.Logger.Println(err)
@@ -106,7 +112,7 @@ func (r Rule34Scraper) Scrap() *PostTable {
 		defer resp.Body.Close()
 
 		body, _ := io.ReadAll(resp.Body)
-		var posts []Rulka
+		var posts []Gelboorus
 		err = json.Unmarshal(body, &posts)
 		if err != nil {
 			r.Logger.Println("Cannot parse response")
