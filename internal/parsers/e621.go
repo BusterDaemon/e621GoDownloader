@@ -47,6 +47,8 @@ type E621Scraper struct {
 	WaitTime     uint
 	DSorter      bool
 	Logger       *log.Logger
+	ApiLogin     string
+	ApiKey       string
 }
 
 func (s E621Posts) convert() *PostTable {
@@ -140,6 +142,10 @@ func (s E621Scraper) Scrap() *PostTable {
 		url := fmt.Sprintf("https://e621.net/posts.json?limit=%d&page=%d&tags=%s"+sorter,
 			s.PostLimit, i, tagString,
 		)
+
+		if s.ApiKey != "" {
+			url = fmt.Sprintf("%s&login=%s&api_key=%s", url, s.ApiLogin, s.ApiKey)
+		}
 
 		s.Logger.Printf("Dialing: %s", url)
 		resp, err := c.Get(url)

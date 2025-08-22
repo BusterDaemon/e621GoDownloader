@@ -69,22 +69,39 @@ func main() {
 						Value: false,
 						Usage: "fix metadata json files",
 					},
+					&cli.StringFlag{
+						Name:  "api-login",
+						Value: "",
+						Usage: "user login to access API",
+					},
+					&cli.StringFlag{
+						Name:  "api-key",
+						Value: "",
+						Usage: "API Key for boorus (requires api_login flag)",
+					},
 				},
 				Action: func(ctx *cli.Context) error {
 					var (
-						booru    string   = ctx.String("booru")
-						tags     []string = ctx.StringSlice("tags")
-						proxy    string   = ctx.String("proxy")
-						maxPosts uint     = ctx.Uint("posts")
-						maxPages uint     = ctx.Uint("pages")
-						wait     uint     = ctx.Uint("wait")
-						dbPath   string   = ctx.Path("db")
-						outPath  string   = ctx.Path("out")
-						dsort    bool     = ctx.Bool("dsort")
-						fix      bool     = ctx.Bool("fix")
-						posts    *parsers.PostTable
-						parser   parsers.Parserer
+						booru     string   = ctx.String("booru")
+						tags      []string = ctx.StringSlice("tags")
+						proxy     string   = ctx.String("proxy")
+						maxPosts  uint     = ctx.Uint("posts")
+						maxPages  uint     = ctx.Uint("pages")
+						wait      uint     = ctx.Uint("wait")
+						dbPath    string   = ctx.Path("db")
+						outPath   string   = ctx.Path("out")
+						dsort     bool     = ctx.Bool("dsort")
+						fix       bool     = ctx.Bool("fix")
+						api_login string   = ctx.String("api-login")
+						api_key   string   = ctx.String("api-key")
+						posts     *parsers.PostTable
+						parser    parsers.Parserer
 					)
+
+					if (api_login != "" && api_key == "") || (api_login == "" && api_key != "") {
+						log.Fatal("Not enough credentials (API key or login)")
+					}
+
 					if len(tags) == 1 {
 						var tmpT []string
 						t := strings.Split(tags[0], ";")
@@ -101,15 +118,35 @@ func main() {
 							WaitTime:     wait,
 							DSorter:      dsort,
 							Logger:       log.Default(),
+							ApiLogin:     api_login,
+							ApiKey:       api_key,
 						}
 					case "rule34":
-						parser = parsers.Rule34Scraper{
+						if api_key == "" || api_login == "" {
+							log.Fatal("You need to set API credentials with --api-key and --api-login. Check https://api.rule34.xxx/")
+						}
+						parser = parsers.GelboorusScraper{
+							BaseUrl:      "https://api.rule34.xxx/index.php?page=dapi&s=post&q=index&json=1&",
 							PostLimit:    maxPosts,
 							MaxPageLimit: maxPages,
 							Tags:         tags,
 							Proxy:        proxy,
 							WaitTime:     wait,
 							Logger:       log.Default(),
+							ApiLogin:     api_login,
+							ApiKey:       api_key,
+						}
+					case "safebooru":
+						parser = parsers.GelboorusScraper{
+							BaseUrl:      "https://safebooru.org/index.php?page=dapi&s=post&q=index&json=1&",
+							PostLimit:    maxPosts,
+							MaxPageLimit: maxPages,
+							Tags:         tags,
+							Proxy:        proxy,
+							WaitTime:     wait,
+							Logger:       log.Default(),
+							ApiLogin:     api_login,
+							ApiKey:       api_key,
 						}
 					}
 					switch fix {
