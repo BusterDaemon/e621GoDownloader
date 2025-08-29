@@ -39,6 +39,10 @@ type DanboorusScraper struct {
 func (r DanboorusScraper) convertPosts(p []Danboorus) *PostTable {
 	var posts *PostTable = NewPostTable()
 	for i, j := range p {
+		if j.Md5 == "" {
+			continue
+		}
+
 		createdDate, _ := time.Parse(time.RFC3339, j.CreatedAt)
 		posts.AddPostTable(i, Post{
 			Width:  j.Width,
@@ -50,6 +54,7 @@ func (r DanboorusScraper) convertPosts(p []Danboorus) *PostTable {
 				}
 
 				var baseUrl string = "https://cdn.donmai.us/original"
+				r.Logger.Println(i, j)
 
 				return fmt.Sprintf("%s/%s/%c%c/%s.%s",
 					baseUrl, j.Md5[:2], j.Md5[2], j.Md5[3], j.Md5, j.FileExt)
