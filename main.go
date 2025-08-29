@@ -148,6 +148,18 @@ func main() {
 							ApiLogin:     api_login,
 							ApiKey:       api_key,
 						}
+					case "danbooru":
+						parser = parsers.DanboorusScraper{
+							BaseUrl:      "https://danbooru.donmai.us/posts.json?",
+							PostLimit:    maxPosts,
+							MaxPageLimit: maxPages,
+							Tags:         tags,
+							Proxy:        proxy,
+							WaitTime:     wait,
+							Logger:       log.Default(),
+							ApiLogin:     api_login,
+							ApiKey:       api_key,
+						}
 					}
 					switch fix {
 					case true:
